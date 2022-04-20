@@ -21,13 +21,14 @@ func (e *Exporter) extractLuaScriptMetrics(ch chan<- prometheus.Metric, c redis.
 		return nil
 	}
 
+	opt := e.options
 	for key, stringVal := range kv {
 		val, err := strconv.ParseFloat(stringVal, 64)
 		if err != nil {
 			log.Errorf("Error parsing lua script results, err: %s", err)
 			return err
 		}
-		e.registerConstMetricGauge(ch, "script_values", val, key)
+		e.registerConstMetricGauge(ch, "script_values", val, key, opt.Partition, opt.Instance)
 	}
 	return nil
 }

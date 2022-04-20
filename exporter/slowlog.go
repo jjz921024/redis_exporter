@@ -6,8 +6,9 @@ import (
 )
 
 func (e *Exporter) extractSlowLogMetrics(ch chan<- prometheus.Metric, c redis.Conn) {
+	opt := e.options
 	if reply, err := redis.Int64(doRedisCmd(c, "SLOWLOG", "LEN")); err == nil {
-		e.registerConstMetricGauge(ch, "slowlog_length", float64(reply))
+		e.registerConstMetricGauge(ch, "slowlog_length", float64(reply), opt.Partition, opt.Instance)
 	}
 
 	values, err := redis.Values(doRedisCmd(c, "SLOWLOG", "GET", "1"))
@@ -27,6 +28,6 @@ func (e *Exporter) extractSlowLogMetrics(ch chan<- prometheus.Metric, c redis.Co
 		}
 	}
 
-	e.registerConstMetricGauge(ch, "slowlog_last_id", float64(slowlogLastID))
-	e.registerConstMetricGauge(ch, "last_slow_execution_duration_seconds", lastSlowExecutionDurationSeconds)
+	e.registerConstMetricGauge(ch, "slowlog_last_id", float64(slowlogLastID), opt.Partition, opt.Instance)
+	e.registerConstMetricGauge(ch, "last_slow_execution_duration_seconds", lastSlowExecutionDurationSeconds, opt.Partition, opt.Instance)
 }

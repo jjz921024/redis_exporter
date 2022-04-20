@@ -59,6 +59,8 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 			masterPort = fieldValue
 		}
 
+		opt := e.options
+
 		switch fieldClass {
 
 		case "Replication":
@@ -81,11 +83,11 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 			if keysTotal, keysEx, avgTTL, ok := parseDBKeyspaceString(fieldKey, fieldValue); ok {
 				dbName := fieldKey
 
-				e.registerConstMetricGauge(ch, "db_keys", keysTotal, dbName)
-				e.registerConstMetricGauge(ch, "db_keys_expiring", keysEx, dbName)
+				e.registerConstMetricGauge(ch, "db_keys", keysTotal, dbName, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "db_keys_expiring", keysEx, dbName, opt.Partition, opt.Instance)
 
 				if avgTTL > -1 {
-					e.registerConstMetricGauge(ch, "db_avg_ttl_seconds", avgTTL, dbName)
+					e.registerConstMetricGauge(ch, "db_avg_ttl_seconds", avgTTL, dbName, opt.Partition, opt.Instance)
 				}
 				handledDBs[dbName] = true
 				continue
@@ -232,12 +234,13 @@ func parseConnectedSlaveString(slaveName string, keyValues string) (offset float
 }
 
 func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterHost string, masterPort string, fieldKey string, fieldValue string) bool {
+	opt := e.options
 	// only slaves have this field
 	if fieldKey == "master_link_status" {
 		if fieldValue == "up" {
-			e.registerConstMetricGauge(ch, "master_link_up", 1, masterHost, masterPort)
+			e.registerConstMetricGauge(ch, "master_link_up", 1, masterHost, masterPort, opt.Partition, opt.Instance)
 		} else {
-			e.registerConstMetricGauge(ch, "master_link_up", 0, masterHost, masterPort)
+			e.registerConstMetricGauge(ch, "master_link_up", 0, masterHost, masterPort, opt.Partition, opt.Instance)
 		}
 		return true
 	}
@@ -245,7 +248,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 
 	case "master_last_io_seconds_ago", "slave_repl_offset", "master_sync_in_progress":
 		val, _ := strconv.Atoi(fieldValue)
-		e.registerConstMetricGauge(ch, fieldKey, float64(val), masterHost, masterPort)
+		e.registerConstMetricGauge(ch, fieldKey, float64(val), masterHost, masterPort, opt.Partition, opt.Instance)
 		return true
 	}
 
@@ -255,6 +258,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 			"connected_slave_offset_bytes",
 			slaveOffset,
 			slaveIP, slavePort, slaveState,
+	  		opt.Partition, opt.Instance,
 		)
 
 		if slaveLag > -1 {
@@ -262,6 +266,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 				"connected_slave_lag_seconds",
 				slaveLag,
 				slaveIP, slavePort, slaveState,
+				opt.Partition, opt.Instance,
 			)
 		}
 		return true
@@ -273,7 +278,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 func (e *Exporter) handleMetricsServer(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	if fieldKey == "uptime_in_seconds" {
 		if uptime, err := strconv.ParseFloat(fieldValue, 64); err == nil {
-			e.registerConstMetricGauge(ch, "start_time_seconds", float64(time.Now().Unix())-uptime)
+			e.registerConstMetricGauge(ch, "start_time_seconds", float64(time.Now().Unix())-uptime, e.options.Partition, e.options.Instance)
 		}
 	}
 }
@@ -374,18 +379,19 @@ func parseMetricsErrorStats(fieldKey string, fieldValue string) (errorType strin
 }
 
 func (e *Exporter) handleMetricsCommandStats(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
+	opt := e.options
 	if cmd, calls, rejectedCalls, failedCalls, usecTotal, extendedStats, err := parseMetricsCommandStats(fieldKey, fieldValue); err == nil {
-		e.registerConstMetric(ch, "commands_total", calls, prometheus.CounterValue, cmd)
-		e.registerConstMetric(ch, "commands_duration_seconds_total", usecTotal/1e6, prometheus.CounterValue, cmd)
+		e.registerConstMetric(ch, "commands_total", calls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
+		e.registerConstMetric(ch, "commands_duration_seconds_total", usecTotal/1e6, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
 		if extendedStats {
-			e.registerConstMetric(ch, "commands_rejected_calls_total", rejectedCalls, prometheus.CounterValue, cmd)
-			e.registerConstMetric(ch, "commands_failed_calls_total", failedCalls, prometheus.CounterValue, cmd)
+			e.registerConstMetric(ch, "commands_rejected_calls_total", rejectedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
+			e.registerConstMetric(ch, "commands_failed_calls_total", failedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
 		}
 	}
 }
 
 func (e *Exporter) handleMetricsErrorStats(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	if errorPrefix, count, err := parseMetricsErrorStats(fieldKey, fieldValue); err == nil {
-		e.registerConstMetric(ch, "errors_total", count, prometheus.CounterValue, errorPrefix)
+		e.registerConstMetric(ch, "errors_total", count, prometheus.CounterValue, errorPrefix, e.options.Partition, e.options.Instance)
 	}
 }

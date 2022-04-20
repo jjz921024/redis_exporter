@@ -78,6 +78,7 @@ func (e *Exporter) extractConnectedClientMetrics(ch chan<- prometheus.Metric, c 
 		return
 	}
 
+	opt := e.options
 	for _, c := range strings.Split(reply, "\n") {
 		if lbls, ok := parseClientListString(c); ok {
 
@@ -85,6 +86,9 @@ func (e *Exporter) extractConnectedClientMetrics(ch chan<- prometheus.Metric, c 
 			if !e.options.ExportClientsInclPort {
 				lbls = lbls[:len(lbls)-1]
 			}
+
+			lbls = append(lbls, opt.Partition, opt.Instance)
+			
 			e.registerConstMetricGauge(
 				ch, "connected_clients_details", 1.0,
 				lbls...,

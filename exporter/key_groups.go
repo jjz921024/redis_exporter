@@ -35,6 +35,7 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 	if allDbKeyGroupMetrics == nil {
 		return
 	}
+	opt := e.options
 	for db, dbKeyGroupMetrics := range allDbKeyGroupMetrics.metrics {
 		dbLabel := fmt.Sprintf("db%d", db)
 		registerKeyGroupMetrics := func(metrics *keyGroupMetrics) {
@@ -44,6 +45,7 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				float64(metrics.count),
 				dbLabel,
 				metrics.keyGroup,
+				opt.Partition, opt.Instance,
 			)
 			e.registerConstMetricGauge(
 				ch,
@@ -51,6 +53,7 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				float64(metrics.memoryUsage),
 				dbLabel,
 				metrics.keyGroup,
+				opt.Partition, opt.Instance,
 			)
 		}
 		if allDbKeyGroupMetrics.overflowedMetrics[db] != nil {
@@ -59,15 +62,15 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				registerKeyGroupMetrics(metrics)
 			}
 			registerKeyGroupMetrics(&overflowedMetrics.overflowKeyGroupAggregate)
-			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(overflowedMetrics.keyGroupsCount), dbLabel)
+			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(overflowedMetrics.keyGroupsCount), dbLabel, opt.Partition, opt.Instance)
 		} else if dbKeyGroupMetrics != nil {
 			for _, metrics := range dbKeyGroupMetrics {
 				registerKeyGroupMetrics(metrics)
 			}
-			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(len(dbKeyGroupMetrics)), dbLabel)
+			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(len(dbKeyGroupMetrics)), dbLabel, opt.Partition, opt.Instance)
 		}
 	}
-	e.registerConstMetricGauge(ch, "last_key_groups_scrape_duration_milliseconds", float64(allDbKeyGroupMetrics.duration.Milliseconds()))
+	e.registerConstMetricGauge(ch, "last_key_groups_scrape_duration_milliseconds", float64(allDbKeyGroupMetrics.duration.Milliseconds()), opt.Partition, opt.Instance)
 }
 
 func (e *Exporter) gatherKeyGroupsMetricsForAllDatabases(c redis.Conn, dbCount int) *keyGroupsScrapeResult {

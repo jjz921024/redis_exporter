@@ -69,6 +69,7 @@ func getKeyInfo(c redis.Conn, key string) (info keyInfo, err error) {
 }
 
 func (e *Exporter) extractCheckKeyMetrics(ch chan<- prometheus.Metric, c redis.Conn) {
+	opt := e.options
 	keys, err := parseKeyArg(e.options.CheckKeys)
 	if err != nil {
 		log.Errorf("Couldn't parse check-keys: %#v", err)
@@ -110,19 +111,19 @@ func (e *Exporter) extractCheckKeyMetrics(ch chan<- prometheus.Metric, c redis.C
 		switch err {
 		case errKeyTypeNotFound:
 			log.Debugf("Key '%s' not found when trying to get type and size: using default '0.0'", k.key)
-			e.registerConstMetricGauge(ch, "key_size", 0.0, dbLabel, k.key)
+			e.registerConstMetricGauge(ch, "key_size", 0.0, dbLabel, k.key, opt.Partition, opt.Instance)
 		case nil:
-			e.registerConstMetricGauge(ch, "key_size", info.size, dbLabel, k.key)
+			e.registerConstMetricGauge(ch, "key_size", info.size, dbLabel, k.key, opt.Partition, opt.Instance)
 
 			// Only run on single value strings
 			if info.keyType == "string" {
 				if strVal, err := redis.String(doRedisCmd(c, "GET", k.key)); err == nil {
 					if val, err := strconv.ParseFloat(strVal, 64); err == nil {
 						// Only record value metric if value is float-y
-						e.registerConstMetricGauge(ch, "key_value", val, dbLabel, k.key)
+						e.registerConstMetricGauge(ch, "key_value", val, dbLabel, k.key, opt.Partition, opt.Instance)
 					} else {
 						// if it's not float-y then we'll record the value as a string label
-						e.registerConstMetricGauge(ch, "key_value_as_string", 1.0, dbLabel, k.key, strVal)
+						e.registerConstMetricGauge(ch, "key_value_as_string", 1.0, dbLabel, k.key, strVal, opt.Partition, opt.Instance)
 					}
 				}
 			}
@@ -133,6 +134,7 @@ func (e *Exporter) extractCheckKeyMetrics(ch chan<- prometheus.Metric, c redis.C
 }
 
 func (e *Exporter) extractCountKeysMetrics(ch chan<- prometheus.Metric, c redis.Conn) {
+	opt := e.options
 	cntKeys, err := parseKeyArg(e.options.CountKeys)
 	if err != nil {
 		log.Errorf("Couldn't parse given count keys: %s", err)
@@ -150,7 +152,7 @@ func (e *Exporter) extractCountKeysMetrics(ch chan<- prometheus.Metric, c redis.
 			continue
 		}
 		dbLabel := "db" + k.db
-		e.registerConstMetricGauge(ch, "keys_count", float64(cnt), dbLabel, k.key)
+		e.registerConstMetricGauge(ch, "keys_count", float64(cnt), dbLabel, k.key, opt.Partition, opt.Instance)
 	}
 }
 

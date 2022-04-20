@@ -11,6 +11,7 @@ import (
 var logErrOnce sync.Once
 
 func (e *Exporter) extractLatencyMetrics(ch chan<- prometheus.Metric, c redis.Conn) {
+	opt := e.options
 	reply, err := redis.Values(doRedisCmd(c, "LATENCY", "LATEST"))
 	if err != nil {
 		/*
@@ -30,8 +31,8 @@ func (e *Exporter) extractLatencyMetrics(ch chan<- prometheus.Metric, c redis.Co
 			var spikeLast, spikeDuration, max int64
 			if _, err := redis.Scan(latencyResult, &eventName, &spikeLast, &spikeDuration, &max); err == nil {
 				spikeDurationSeconds := float64(spikeDuration) / 1e3
-				e.registerConstMetricGauge(ch, "latency_spike_last", float64(spikeLast), eventName)
-				e.registerConstMetricGauge(ch, "latency_spike_duration_seconds", spikeDurationSeconds, eventName)
+				e.registerConstMetricGauge(ch, "latency_spike_last", float64(spikeLast), eventName, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "latency_spike_duration_seconds", spikeDurationSeconds, eventName, opt.Partition, opt.Instance)
 			}
 		}
 	}

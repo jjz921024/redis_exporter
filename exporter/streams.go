@@ -125,6 +125,7 @@ func parseStreamItemId(id string) float64 {
 }
 
 func (e *Exporter) extractStreamMetrics(ch chan<- prometheus.Metric, c redis.Conn) {
+	opt := e.options
 	streams, err := parseKeyArg(e.options.CheckStreams)
 	if err != nil {
 		log.Errorf("Couldn't parse given stream keys: %s", err)
@@ -158,19 +159,19 @@ func (e *Exporter) extractStreamMetrics(ch chan<- prometheus.Metric, c redis.Con
 		}
 		dbLabel := "db" + k.db
 
-		e.registerConstMetricGauge(ch, "stream_length", float64(info.Length), dbLabel, k.key)
-		e.registerConstMetricGauge(ch, "stream_radix_tree_keys", float64(info.RadixTreeKeys), dbLabel, k.key)
-		e.registerConstMetricGauge(ch, "stream_radix_tree_nodes", float64(info.RadixTreeNodes), dbLabel, k.key)
-		e.registerConstMetricGauge(ch, "stream_last_generated_id", parseStreamItemId(info.LastGeneratedId), dbLabel, k.key)
-		e.registerConstMetricGauge(ch, "stream_groups", float64(info.Groups), dbLabel, k.key)
+		e.registerConstMetricGauge(ch, "stream_length", float64(info.Length), dbLabel, k.key, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "stream_radix_tree_keys", float64(info.RadixTreeKeys), dbLabel, k.key, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "stream_radix_tree_nodes", float64(info.RadixTreeNodes), dbLabel, k.key, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "stream_last_generated_id", parseStreamItemId(info.LastGeneratedId), dbLabel, k.key, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "stream_groups", float64(info.Groups), dbLabel, k.key, opt.Partition, opt.Instance)
 
 		for _, g := range info.StreamGroupsInfo {
-			e.registerConstMetricGauge(ch, "stream_group_consumers", float64(g.Consumers), dbLabel, k.key, g.Name)
-			e.registerConstMetricGauge(ch, "stream_group_messages_pending", float64(g.Pending), dbLabel, k.key, g.Name)
-			e.registerConstMetricGauge(ch, "stream_group_last_delivered_id", parseStreamItemId(g.LastDeliveredId), dbLabel, k.key, g.Name)
+			e.registerConstMetricGauge(ch, "stream_group_consumers", float64(g.Consumers), dbLabel, k.key, g.Name, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "stream_group_messages_pending", float64(g.Pending), dbLabel, k.key, g.Name, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "stream_group_last_delivered_id", parseStreamItemId(g.LastDeliveredId), dbLabel, k.key, g.Name, opt.Partition, opt.Instance)
 			for _, c := range g.StreamGroupConsumersInfo {
-				e.registerConstMetricGauge(ch, "stream_group_consumer_messages_pending", float64(c.Pending), dbLabel, k.key, g.Name, c.Name)
-				e.registerConstMetricGauge(ch, "stream_group_consumer_idle_seconds", float64(c.Idle)/1e3, dbLabel, k.key, g.Name, c.Name)
+				e.registerConstMetricGauge(ch, "stream_group_consumer_messages_pending", float64(c.Pending), dbLabel, k.key, g.Name, c.Name, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "stream_group_consumer_idle_seconds", float64(c.Idle)/1e3, dbLabel, k.key, g.Name, c.Name, opt.Partition, opt.Instance)
 			}
 		}
 	}

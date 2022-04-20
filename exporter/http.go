@@ -2,10 +2,12 @@ package exporter
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/oliver006/redis_exporter/webank"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -87,4 +89,42 @@ func (e *Exporter) scrapeHandler(w http.ResponseWriter, r *http.Request) {
 	promhttp.HandlerFor(
 		registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError},
 	).ServeHTTP(w, r)
+}
+
+func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	if !params.Has("clusterName") {
+		w.Write([]byte("cluster name not found"))
+		return
+	}
+
+	name := params.Get("clusterName")
+
+	info := webank.GetCurrentClusterInfo(name)
+	registry := prometheus.NewRegistry()
+
+	for _, n := range info.Nodes {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("error %s at scrape node:%s\n", err, n.Instance)
+			}
+		}()
+
+		opts := e.options	
+		opts.Registry = registry
+		opts.Partition = n.Partition
+		opts.Instance = n.Instance
+
+		_, err := NewRedisExporter(n.Instance, opts)
+		if err != nil {
+			http.Error(w, "NewRedisExporter() err: err", http.StatusBadRequest)
+			e.targetScrapeRequestErrors.Inc()
+			return
+		}
+	}
+
+	promhttp.HandlerFor(
+		registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError},
+	).ServeHTTP(w, r)
+
 }

@@ -72,7 +72,7 @@ func (e *Exporter) parseAndRegisterConstMetric(ch chan<- prometheus.Metric, fiel
 		val = val / 1e6
 	}
 
-	e.registerConstMetric(ch, metricName, val, t)
+	e.registerConstMetric(ch, metricName, val, t, e.options.Partition, e.options.Instance)
 }
 
 func (e *Exporter) registerConstMetricGauge(ch chan<- prometheus.Metric, metric string, val float64, labels ...string) {
