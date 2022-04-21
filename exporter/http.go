@@ -93,14 +93,20 @@ func (e *Exporter) scrapeHandler(w http.ResponseWriter, r *http.Request) {
 
 func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
-	if !params.Has("clusterName") {
-		w.Write([]byte("cluster name not found"))
+	name := params.Get("clusterName")
+
+	if !params.Has("clusterName") || name == "" {
+		webank.CurrentClusterName = ""
+		w.Write([]byte("# cluster name is nil"))
 		return
 	}
 
-	name := params.Get("clusterName")
+	info, err := webank.GetCurrentClusterInfo(name)
+	if err != nil {
+		w.Write([]byte("# " + err.Error()))
+		return
+	}
 
-	info := webank.GetCurrentClusterInfo(name)
 	registry := prometheus.NewRegistry()
 
 	for _, n := range info.Nodes {
