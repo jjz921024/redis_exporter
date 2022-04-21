@@ -84,6 +84,11 @@ type Options struct {
 func NewRedisExporter(redisURI string, opts Options) (*Exporter, error) {
 	log.Debugf("NewRedisExporter options: %#v", opts)
 
+	assembleLabels := prometheus.Labels{
+		"partition": opts.Partition,
+		"instance": opts.Instance,
+	}
+
 	e := &Exporter{
 		redisAddr: redisURI,
 		options:   opts,
@@ -95,18 +100,21 @@ func NewRedisExporter(redisURI string, opts Options) (*Exporter, error) {
 			Namespace: opts.Namespace,
 			Name:      "exporter_scrapes_total",
 			Help:      "Current total redis scrapes.",
+			ConstLabels: assembleLabels,
 		}),
 
 		scrapeDuration: prometheus.NewSummary(prometheus.SummaryOpts{
 			Namespace: opts.Namespace,
 			Name:      "exporter_scrape_duration_seconds",
 			Help:      "Durations of scrapes by the exporter",
+			ConstLabels: assembleLabels,
 		}),
 
 		targetScrapeRequestErrors: prometheus.NewCounter(prometheus.CounterOpts{
 			Namespace: opts.Namespace,
 			Name:      "target_scrape_request_errors_total",
 			Help:      "Errors in requests to the exporter",
+			ConstLabels: assembleLabels,
 		}),
 
 		metricMapGauges: map[string]string{
@@ -515,7 +523,7 @@ func (e *Exporter) extractConfigMetrics(ch chan<- prometheus.Metric, config []st
 		}[strKey] {
 			if val, err := strconv.ParseFloat(strVal, 64); err == nil {
 				strKey = strings.ReplaceAll(strKey, "-", "_")
-				e.registerConstMetricGauge(ch, fmt.Sprintf("config_%s", strKey), val)
+				e.registerConstMetricGauge(ch, fmt.Sprintf("config_%s", strKey), val, opt.Partition, opt.Instance)
 			}
 		}
 	}

@@ -25,6 +25,8 @@ func extractVal(s string) (val float64, err error) {
 }
 
 func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, dbCount int) {
+	opt := e.options
+
 	keyValues := map[string]string{}
 	handledDBs := map[string]bool{}
 
@@ -58,8 +60,6 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		if fieldKey == "master_port" {
 			masterPort = fieldValue
 		}
-
-		opt := e.options
 
 		switch fieldClass {
 
@@ -107,8 +107,8 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 	for dbIndex := 0; dbIndex < dbCount; dbIndex++ {
 		dbName := "db" + strconv.Itoa(dbIndex)
 		if _, exists := handledDBs[dbName]; !exists {
-			e.registerConstMetricGauge(ch, "db_keys", 0, dbName)
-			e.registerConstMetricGauge(ch, "db_keys_expiring", 0, dbName)
+			e.registerConstMetricGauge(ch, "db_keys", 0, dbName, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "db_keys_expiring", 0, dbName, opt.Partition, opt.Instance)
 		}
 	}
 
@@ -120,6 +120,7 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		keyValues["os"],
 		keyValues["maxmemory_policy"],
 		keyValues["tcp_port"], keyValues["run_id"], keyValues["process_id"],
+		opt.Partition, opt.Instance,
 	)
 
 	if keyValues["role"] == "slave" {
