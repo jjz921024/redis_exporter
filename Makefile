@@ -14,4 +14,4 @@ dist: build
 
 .PHONE dist-zip
 dist: build
-	zip -j redis-exporter.zip build/redis_exporter dist/start.sh dist/stop.sh
+	zip -j redis-exporter.zip build/* dist/*
