@@ -50,6 +50,7 @@ func init() {
 // 若传入集群名和当前监测的集群不同，则会自动切换
 func GetCurrentClusterInfo(clusterName string) (*ClusterInfo, error) {
 	if clusterName != CurrentClusterName {
+		log.Printf("change cluster from:%s to %s\n", CurrentClusterName, clusterName)
 		if err := updateCurrentClusterInfo(clusterName); err != nil {
 			return nil, err
 		}
@@ -133,7 +134,7 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 		for i, h := range hosts {
 			nodes[i] = NodeInfo{
 				Partition: num,
-				Instance:  h,
+				Host:  h,
 			}
 		}
 

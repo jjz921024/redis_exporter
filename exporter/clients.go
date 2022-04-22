@@ -87,7 +87,7 @@ func (e *Exporter) extractConnectedClientMetrics(ch chan<- prometheus.Metric, c 
 				lbls = lbls[:len(lbls)-1]
 			}
 
-			lbls = append(lbls, opt.Partition, opt.Instance)
+			lbls = append(lbls, opt.Partition, opt.Host)
 			
 			e.registerConstMetricGauge(
 				ch, "connected_clients_details", 1.0,

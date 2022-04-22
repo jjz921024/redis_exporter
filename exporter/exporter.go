@@ -77,7 +77,7 @@ type Options struct {
 	Registry              *prometheus.Registry
 	BuildInfo             BuildInfo
 	Partition			  string
-	Instance			  string
+	Host				  string
 }
 
 // NewRedisExporter returns a new exporter of Redis metrics.
@@ -86,7 +86,7 @@ func NewRedisExporter(redisURI string, opts Options) (*Exporter, error) {
 
 	assembleLabels := prometheus.Labels{
 		"partition": opts.Partition,
-		"instance": opts.Instance,
+		"host": opts.Host,
 	}
 
 	e := &Exporter{
@@ -338,7 +338,7 @@ func NewRedisExporter(redisURI string, opts Options) (*Exporter, error) {
 
 	e.metricDescriptions = map[string]*prometheus.Desc{}
 
-	connectedClientsLabels := []string{"name", "created_at", "idle_since", "flags", "db", "omem", "cmd", "host", "partition", "instance"}
+	connectedClientsLabels := []string{"name", "created_at", "idle_since", "flags", "db", "omem", "cmd", "host", "partition", "host"}
 	if e.options.ExportClientsInclPort {
 		connectedClientsLabels = append(connectedClientsLabels, "port")
 	}
@@ -347,62 +347,62 @@ func NewRedisExporter(redisURI string, opts Options) (*Exporter, error) {
 		txt  string
 		lbls []string
 	}{
-		"commands_duration_seconds_total":              {txt: `Total amount of time in seconds spent per command`, lbls: []string{"cmd", "partition", "instance"}},
-		"commands_failed_calls_total":                  {txt: `Total number of errors prior command execution per command`, lbls: []string{"cmd", "partition", "instance"}},
-		"commands_rejected_calls_total":                {txt: `Total number of errors within command execution per command`, lbls: []string{"cmd", "partition", "instance"}},
-		"commands_total":                               {txt: `Total number of calls per command`, lbls: []string{"cmd", "partition", "instance"}},
-		"config_key_value":                             {txt: `Config key and value`, lbls: []string{"key", "value", "partition", "instance"}},
-		"config_value":                                 {txt: `Config key and value as metric`, lbls: []string{"key", "partition", "instance"}},
+		"commands_duration_seconds_total":              {txt: `Total amount of time in seconds spent per command`, lbls: []string{"cmd", "partition", "host"}},
+		"commands_failed_calls_total":                  {txt: `Total number of errors prior command execution per command`, lbls: []string{"cmd", "partition", "host"}},
+		"commands_rejected_calls_total":                {txt: `Total number of errors within command execution per command`, lbls: []string{"cmd", "partition", "host"}},
+		"commands_total":                               {txt: `Total number of calls per command`, lbls: []string{"cmd", "partition", "host"}},
+		"config_key_value":                             {txt: `Config key and value`, lbls: []string{"key", "value", "partition", "host"}},
+		"config_value":                                 {txt: `Config key and value as metric`, lbls: []string{"key", "partition", "host"}},
 		"connected_clients_details":                    {txt: "Details about connected clients", lbls: connectedClientsLabels},
-		"connected_slave_lag_seconds":                  {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state", "partition", "instance"}},
-		"connected_slave_offset_bytes":                 {txt: "Offset of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state", "partition", "instance"}},
-		"db_avg_ttl_seconds":                           {txt: "Avg TTL in seconds", lbls: []string{"db", "partition", "instance"}},
-		"db_keys":                                      {txt: "Total number of keys by DB", lbls: []string{"db", "partition", "instance"}},
-		"db_keys_expiring":                             {txt: "Total number of expiring keys by DB", lbls: []string{"db", "partition", "instance"}},
-		"errors_total":                                 {txt: `Total number of errors per error type`, lbls: []string{"err", "partition", "instance"}},
-		"exporter_last_scrape_error":                   {txt: "The last scrape error status.", lbls: []string{"err", "partition", "instance"}},
-		"instance_info":                                {txt: "Information about the Redis instance", lbls: []string{"role", "redis_version", "redis_build_id", "redis_mode", "os", "maxmemory_policy", "tcp_port", "run_id", "process_id", "partition", "instance"}},
-		"key_group_count":                              {txt: `Count of keys in key group`, lbls: []string{"db", "key_group", "partition", "instance"}},
-		"key_group_memory_usage_bytes":                 {txt: `Total memory usage of key group in bytes`, lbls: []string{"db", "key_group", "partition", "instance"}},
-		"key_size":                                     {txt: `The length or size of "key"`, lbls: []string{"db", "key", "partition", "instance"}},
-		"key_value":                                    {txt: `The value of "key"`, lbls: []string{"db", "key", "partition", "instance"}},
-		"key_value_as_string":                          {txt: `The value of "key" as a string`, lbls: []string{"db", "key", "val", "partition", "instance"}},
-		"keys_count":                                   {txt: `Count of keys`, lbls: []string{"db", "key", "partition", "instance"}},
-		"last_key_groups_scrape_duration_milliseconds": {txt: `Duration of the last key group metrics scrape in milliseconds`, lbls: []string{"partition", "instance"}},
-		"last_slow_execution_duration_seconds":         {txt: `The amount of time needed for last slow execution, in seconds`, lbls: []string{"partition", "instance"}},
-		"latency_spike_duration_seconds":               {txt: `Length of the last latency spike in seconds`, lbls: []string{"event_name", "partition", "instance"}},
-		"latency_spike_last":                           {txt: `When the latency spike last occurred`, lbls: []string{"event_name", "partition", "instance"}},
-		"master_last_io_seconds_ago":                   {txt: "Master last io seconds ago", lbls: []string{"master_host", "master_port", "partition", "instance"}},
-		"master_link_up":                               {txt: "Master link status on Redis slave", lbls: []string{"master_host", "master_port", "partition", "instance"}},
-		"master_sync_in_progress":                      {txt: "Master sync in progress", lbls: []string{"master_host", "master_port", "partition", "instance"}},
-		"number_of_distinct_key_groups":                {txt: `Number of distinct key groups`, lbls: []string{"db", "partition", "instance"}},
-		"script_values":                                {txt: "Values returned by the collect script", lbls: []string{"key", "partition", "instance"}},
-		"sentinel_master_ok_sentinels":                 {txt: "The number of okay sentinels monitoring this master", lbls: []string{"master_name", "master_address", "partition", "instance"}},
-		"sentinel_master_ok_slaves":                    {txt: "The number of okay slaves of the master", lbls: []string{"master_name", "master_address", "partition", "instance"}},
-		"sentinel_master_sentinels":                    {txt: "The number of sentinels monitoring this master", lbls: []string{"master_name", "master_address", "partition", "instance"}},
-		"sentinel_master_slaves":                       {txt: "The number of slaves of the master", lbls: []string{"master_name", "master_address", "partition", "instance"}},
-		"sentinel_master_status":                       {txt: "Master status on Sentinel", lbls: []string{"master_name", "master_address", "master_status", "partition", "instance"}},
-		"sentinel_masters":                             {txt: "The number of masters this sentinel is watching", lbls: []string{"partition", "instance"}},
-		"sentinel_running_scripts":                     {txt: "Number of scripts in execution right now", lbls: []string{"partition", "instance"}},
-		"sentinel_scripts_queue_length":                {txt: "Queue of user scripts to execute", lbls: []string{"partition", "instance"}},
-		"sentinel_simulate_failure_flags":              {txt: "Failures simulations", lbls: []string{"partition", "instance"}},
-		"sentinel_tilt":                                {txt: "Sentinel is in TILT mode", lbls: []string{"partition", "instance"}},
-		"slave_info":                                   {txt: "Information about the Redis slave", lbls: []string{"master_host", "master_port", "read_only", "partition", "instance"}},
-		"slave_repl_offset":                            {txt: "Slave replication offset", lbls: []string{"master_host", "master_port", "partition", "instance"}},
-		"slowlog_last_id":                              {txt: `Last id of slowlog`, lbls: []string{"partition", "instance"}},
-		"slowlog_length":                               {txt: `Total slowlog`, lbls: []string{"partition", "instance"}},
-		"start_time_seconds":                           {txt: "Start time of the Redis instance since unix epoch in seconds.", lbls: []string{"partition", "instance"}},
-		"stream_group_consumer_idle_seconds":           {txt: `Consumer idle time in seconds`, lbls: []string{"db", "stream", "group", "consumer", "partition", "instance"}},
-		"stream_group_consumer_messages_pending":       {txt: `Pending number of messages for this specific consumer`, lbls: []string{"db", "stream", "group", "consumer", "partition", "instance"}},
-		"stream_group_consumers":                       {txt: `Consumers count of stream group`, lbls: []string{"db", "stream", "group", "partition", "instance"}},
-		"stream_group_last_delivered_id":               {txt: `The epoch timestamp (ms) of the last delivered message`, lbls: []string{"db", "stream", "group", "partition", "instance"}},
-		"stream_group_messages_pending":                {txt: `Pending number of messages in that stream group`, lbls: []string{"db", "stream", "group", "partition", "instance"}},
-		"stream_groups":                                {txt: `Groups count of stream`, lbls: []string{"db", "stream", "partition", "instance"}},
-		"stream_last_generated_id":                     {txt: `The epoch timestamp (ms) of the latest message on the stream`, lbls: []string{"db", "stream", "partition", "instance"}},
-		"stream_length":                                {txt: `The number of elements of the stream`, lbls: []string{"db", "stream", "partition", "instance"}},
-		"stream_radix_tree_keys":                       {txt: `Radix tree keys count"`, lbls: []string{"db", "stream", "partition", "instance"}},
-		"stream_radix_tree_nodes":                      {txt: `Radix tree nodes count`, lbls: []string{"db", "stream", "partition", "instance"}},
-		"up":                                           {txt: "Information about the Redis instance", lbls: []string{"partition", "instance"}},
+		"connected_slave_lag_seconds":                  {txt: "Lag of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state", "partition", "host"}},
+		"connected_slave_offset_bytes":                 {txt: "Offset of connected slave", lbls: []string{"slave_ip", "slave_port", "slave_state", "partition", "host"}},
+		"db_avg_ttl_seconds":                           {txt: "Avg TTL in seconds", lbls: []string{"db", "partition", "host"}},
+		"db_keys":                                      {txt: "Total number of keys by DB", lbls: []string{"db", "partition", "host"}},
+		"db_keys_expiring":                             {txt: "Total number of expiring keys by DB", lbls: []string{"db", "partition", "host"}},
+		"errors_total":                                 {txt: `Total number of errors per error type`, lbls: []string{"err", "partition", "host"}},
+		"exporter_last_scrape_error":                   {txt: "The last scrape error status.", lbls: []string{"err", "partition", "host"}},
+		"instance_info":                                {txt: "Information about the Redis instance", lbls: []string{"role", "redis_version", "redis_build_id", "redis_mode", "os", "maxmemory_policy", "tcp_port", "run_id", "process_id", "partition", "host"}},
+		"key_group_count":                              {txt: `Count of keys in key group`, lbls: []string{"db", "key_group", "partition", "host"}},
+		"key_group_memory_usage_bytes":                 {txt: `Total memory usage of key group in bytes`, lbls: []string{"db", "key_group", "partition", "host"}},
+		"key_size":                                     {txt: `The length or size of "key"`, lbls: []string{"db", "key", "partition", "host"}},
+		"key_value":                                    {txt: `The value of "key"`, lbls: []string{"db", "key", "partition", "host"}},
+		"key_value_as_string":                          {txt: `The value of "key" as a string`, lbls: []string{"db", "key", "val", "partition", "host"}},
+		"keys_count":                                   {txt: `Count of keys`, lbls: []string{"db", "key", "partition", "host"}},
+		"last_key_groups_scrape_duration_milliseconds": {txt: `Duration of the last key group metrics scrape in milliseconds`, lbls: []string{"partition", "host"}},
+		"last_slow_execution_duration_seconds":         {txt: `The amount of time needed for last slow execution, in seconds`, lbls: []string{"partition", "host"}},
+		"latency_spike_duration_seconds":               {txt: `Length of the last latency spike in seconds`, lbls: []string{"event_name", "partition", "host"}},
+		"latency_spike_last":                           {txt: `When the latency spike last occurred`, lbls: []string{"event_name", "partition", "host"}},
+		"master_last_io_seconds_ago":                   {txt: "Master last io seconds ago", lbls: []string{"master_host", "master_port", "partition", "host"}},
+		"master_link_up":                               {txt: "Master link status on Redis slave", lbls: []string{"master_host", "master_port", "partition", "host"}},
+		"master_sync_in_progress":                      {txt: "Master sync in progress", lbls: []string{"master_host", "master_port", "partition", "host"}},
+		"number_of_distinct_key_groups":                {txt: `Number of distinct key groups`, lbls: []string{"db", "partition", "host"}},
+		"script_values":                                {txt: "Values returned by the collect script", lbls: []string{"key", "partition", "host"}},
+		"sentinel_master_ok_sentinels":                 {txt: "The number of okay sentinels monitoring this master", lbls: []string{"master_name", "master_address", "partition", "host"}},
+		"sentinel_master_ok_slaves":                    {txt: "The number of okay slaves of the master", lbls: []string{"master_name", "master_address", "partition", "host"}},
+		"sentinel_master_sentinels":                    {txt: "The number of sentinels monitoring this master", lbls: []string{"master_name", "master_address", "partition", "host"}},
+		"sentinel_master_slaves":                       {txt: "The number of slaves of the master", lbls: []string{"master_name", "master_address", "partition", "host"}},
+		"sentinel_master_status":                       {txt: "Master status on Sentinel", lbls: []string{"master_name", "master_address", "master_status", "partition", "host"}},
+		"sentinel_masters":                             {txt: "The number of masters this sentinel is watching", lbls: []string{"partition", "host"}},
+		"sentinel_running_scripts":                     {txt: "Number of scripts in execution right now", lbls: []string{"partition", "host"}},
+		"sentinel_scripts_queue_length":                {txt: "Queue of user scripts to execute", lbls: []string{"partition", "host"}},
+		"sentinel_simulate_failure_flags":              {txt: "Failures simulations", lbls: []string{"partition", "host"}},
+		"sentinel_tilt":                                {txt: "Sentinel is in TILT mode", lbls: []string{"partition", "host"}},
+		"slave_info":                                   {txt: "Information about the Redis slave", lbls: []string{"master_host", "master_port", "read_only", "partition", "host"}},
+		"slave_repl_offset":                            {txt: "Slave replication offset", lbls: []string{"master_host", "master_port", "partition", "host"}},
+		"slowlog_last_id":                              {txt: `Last id of slowlog`, lbls: []string{"partition", "host"}},
+		"slowlog_length":                               {txt: `Total slowlog`, lbls: []string{"partition", "host"}},
+		"start_time_seconds":                           {txt: "Start time of the Redis instance since unix epoch in seconds.", lbls: []string{"partition", "host"}},
+		"stream_group_consumer_idle_seconds":           {txt: `Consumer idle time in seconds`, lbls: []string{"db", "stream", "group", "consumer", "partition", "host"}},
+		"stream_group_consumer_messages_pending":       {txt: `Pending number of messages for this specific consumer`, lbls: []string{"db", "stream", "group", "consumer", "partition", "host"}},
+		"stream_group_consumers":                       {txt: `Consumers count of stream group`, lbls: []string{"db", "stream", "group", "partition", "host"}},
+		"stream_group_last_delivered_id":               {txt: `The epoch timestamp (ms) of the last delivered message`, lbls: []string{"db", "stream", "group", "partition", "host"}},
+		"stream_group_messages_pending":                {txt: `Pending number of messages in that stream group`, lbls: []string{"db", "stream", "group", "partition", "host"}},
+		"stream_groups":                                {txt: `Groups count of stream`, lbls: []string{"db", "stream", "partition", "host"}},
+		"stream_last_generated_id":                     {txt: `The epoch timestamp (ms) of the latest message on the stream`, lbls: []string{"db", "stream", "partition", "host"}},
+		"stream_length":                                {txt: `The number of elements of the stream`, lbls: []string{"db", "stream", "partition", "host"}},
+		"stream_radix_tree_keys":                       {txt: `Radix tree keys count"`, lbls: []string{"db", "stream", "partition", "host"}},
+		"stream_radix_tree_nodes":                      {txt: `Radix tree nodes count`, lbls: []string{"db", "stream", "partition", "host"}},
+		"up":                                           {txt: "Information about the Redis instance", lbls: []string{"partition", "host"}},
 	} {
 		e.metricDescriptions[k] = newMetricDescr(opts.Namespace, k, desc.txt, desc.lbls)
 	}
@@ -468,17 +468,17 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		var up float64
 		opt := e.options
 		if err := e.scrapeRedisHost(ch); err != nil {
-			e.registerConstMetricGauge(ch, "exporter_last_scrape_error", 1.0, fmt.Sprintf("%s", err), opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "exporter_last_scrape_error", 1.0, fmt.Sprintf("%s", err), opt.Partition, opt.Host)
 		} else {
 			up = 1
-			e.registerConstMetricGauge(ch, "exporter_last_scrape_error", 0, "", opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "exporter_last_scrape_error", 0, "", opt.Partition, opt.Host)
 		}
 
-		e.registerConstMetricGauge(ch, "up", up, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "up", up, opt.Partition, opt.Host)
 
 		took := time.Since(startTime).Seconds()
 		e.scrapeDuration.Observe(took)
-		e.registerConstMetricGauge(ch, "exporter_last_scrape_duration_seconds", took,  opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "exporter_last_scrape_duration_seconds", took,  opt.Partition, opt.Host)
 	}
 
 	ch <- e.totalScrapes
@@ -509,9 +509,9 @@ func (e *Exporter) extractConfigMetrics(ch chan<- prometheus.Metric, config []st
 				"tls-key-file-pass":        true,
 				"tls-client-key-file-pass": true,
 			}[strKey]; !redact || !e.options.RedactConfigMetrics {
-				e.registerConstMetricGauge(ch, "config_key_value", 1.0, strKey, strVal, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "config_key_value", 1.0, strKey, strVal, opt.Partition, opt.Host)
 				if val, err := strconv.ParseFloat(strVal, 64); err == nil {
-					e.registerConstMetricGauge(ch, "config_value", val, strKey, opt.Partition, opt.Instance)
+					e.registerConstMetricGauge(ch, "config_value", val, strKey, opt.Partition, opt.Host)
 				}
 			}
 		}
@@ -523,7 +523,7 @@ func (e *Exporter) extractConfigMetrics(ch chan<- prometheus.Metric, config []st
 		}[strKey] {
 			if val, err := strconv.ParseFloat(strVal, 64); err == nil {
 				strKey = strings.ReplaceAll(strKey, "-", "_")
-				e.registerConstMetricGauge(ch, fmt.Sprintf("config_%s", strKey), val, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, fmt.Sprintf("config_%s", strKey), val, opt.Partition, opt.Host)
 			}
 		}
 	}
@@ -539,7 +539,7 @@ func (e *Exporter) scrapeRedisHost(ch chan<- prometheus.Metric) error {
 	startTime := time.Now()
 	c, err := e.connectToRedis()
 	connectTookSeconds := time.Since(startTime).Seconds()
-	e.registerConstMetricGauge(ch, "exporter_last_scrape_connect_time_seconds", connectTookSeconds, opt.Partition, opt.Instance)
+	e.registerConstMetricGauge(ch, "exporter_last_scrape_connect_time_seconds", connectTookSeconds, opt.Partition, opt.Host)
 
 	if err != nil {
 		log.Errorf("Couldn't connect to redis instance")
@@ -558,7 +558,7 @@ func (e *Exporter) scrapeRedisHost(ch chan<- prometheus.Metric) error {
 			log.Errorf("Couldn't PING server, err: %s", err)
 		} else {
 			pingTookSeconds := time.Since(startTime).Seconds()
-			e.registerConstMetricGauge(ch, "exporter_last_scrape_ping_time_seconds", pingTookSeconds, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "exporter_last_scrape_ping_time_seconds", pingTookSeconds, opt.Partition, opt.Host)
 			log.Debugf("PING took %f seconds", pingTookSeconds)
 		}
 	}

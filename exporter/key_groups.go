@@ -45,7 +45,7 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				float64(metrics.count),
 				dbLabel,
 				metrics.keyGroup,
-				opt.Partition, opt.Instance,
+				opt.Partition, opt.Host,
 			)
 			e.registerConstMetricGauge(
 				ch,
@@ -53,7 +53,7 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				float64(metrics.memoryUsage),
 				dbLabel,
 				metrics.keyGroup,
-				opt.Partition, opt.Instance,
+				opt.Partition, opt.Host,
 			)
 		}
 		if allDbKeyGroupMetrics.overflowedMetrics[db] != nil {
@@ -62,15 +62,15 @@ func (e *Exporter) extractKeyGroupMetrics(ch chan<- prometheus.Metric, c redis.C
 				registerKeyGroupMetrics(metrics)
 			}
 			registerKeyGroupMetrics(&overflowedMetrics.overflowKeyGroupAggregate)
-			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(overflowedMetrics.keyGroupsCount), dbLabel, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(overflowedMetrics.keyGroupsCount), dbLabel, opt.Partition, opt.Host)
 		} else if dbKeyGroupMetrics != nil {
 			for _, metrics := range dbKeyGroupMetrics {
 				registerKeyGroupMetrics(metrics)
 			}
-			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(len(dbKeyGroupMetrics)), dbLabel, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "number_of_distinct_key_groups", float64(len(dbKeyGroupMetrics)), dbLabel, opt.Partition, opt.Host)
 		}
 	}
-	e.registerConstMetricGauge(ch, "last_key_groups_scrape_duration_milliseconds", float64(allDbKeyGroupMetrics.duration.Milliseconds()), opt.Partition, opt.Instance)
+	e.registerConstMetricGauge(ch, "last_key_groups_scrape_duration_milliseconds", float64(allDbKeyGroupMetrics.duration.Milliseconds()), opt.Partition, opt.Host)
 }
 
 func (e *Exporter) gatherKeyGroupsMetricsForAllDatabases(c redis.Conn, dbCount int) *keyGroupsScrapeResult {

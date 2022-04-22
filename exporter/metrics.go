@@ -72,7 +72,7 @@ func (e *Exporter) parseAndRegisterConstMetric(ch chan<- prometheus.Metric, fiel
 		val = val / 1e6
 	}
 
-	e.registerConstMetric(ch, metricName, val, t, e.options.Partition, e.options.Instance)
+	e.registerConstMetric(ch, metricName, val, t, e.options.Partition, e.options.Host)
 }
 
 func (e *Exporter) registerConstMetricGauge(ch chan<- prometheus.Metric, metric string, val float64, labels ...string) {
@@ -82,7 +82,7 @@ func (e *Exporter) registerConstMetricGauge(ch chan<- prometheus.Metric, metric 
 func (e *Exporter) registerConstMetric(ch chan<- prometheus.Metric, metric string, val float64, valType prometheus.ValueType, labelValues ...string) {
 	descr := e.metricDescriptions[metric]
 	if descr == nil {
-		descr = newMetricDescr(e.options.Namespace, metric, metric+" metric", []string{"partition", "instance"})
+		descr = newMetricDescr(e.options.Namespace, metric, metric+" metric", []string{"partition", "host"})
 	}
 
 	m, err := prometheus.NewConstMetric(descr, valType, val, labelValues...)

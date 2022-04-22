@@ -83,11 +83,11 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 			if keysTotal, keysEx, avgTTL, ok := parseDBKeyspaceString(fieldKey, fieldValue); ok {
 				dbName := fieldKey
 
-				e.registerConstMetricGauge(ch, "db_keys", keysTotal, dbName, opt.Partition, opt.Instance)
-				e.registerConstMetricGauge(ch, "db_keys_expiring", keysEx, dbName, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "db_keys", keysTotal, dbName, opt.Partition, opt.Host)
+				e.registerConstMetricGauge(ch, "db_keys_expiring", keysEx, dbName, opt.Partition, opt.Host)
 
 				if avgTTL > -1 {
-					e.registerConstMetricGauge(ch, "db_avg_ttl_seconds", avgTTL, dbName, opt.Partition, opt.Instance)
+					e.registerConstMetricGauge(ch, "db_avg_ttl_seconds", avgTTL, dbName, opt.Partition, opt.Host)
 				}
 				handledDBs[dbName] = true
 				continue
@@ -107,8 +107,8 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 	for dbIndex := 0; dbIndex < dbCount; dbIndex++ {
 		dbName := "db" + strconv.Itoa(dbIndex)
 		if _, exists := handledDBs[dbName]; !exists {
-			e.registerConstMetricGauge(ch, "db_keys", 0, dbName, opt.Partition, opt.Instance)
-			e.registerConstMetricGauge(ch, "db_keys_expiring", 0, dbName, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "db_keys", 0, dbName, opt.Partition, opt.Host)
+			e.registerConstMetricGauge(ch, "db_keys_expiring", 0, dbName, opt.Partition, opt.Host)
 		}
 	}
 
@@ -120,14 +120,15 @@ func (e *Exporter) extractInfoMetrics(ch chan<- prometheus.Metric, info string, 
 		keyValues["os"],
 		keyValues["maxmemory_policy"],
 		keyValues["tcp_port"], keyValues["run_id"], keyValues["process_id"],
-		opt.Partition, opt.Instance,
+		opt.Partition, opt.Host,
 	)
 
 	if keyValues["role"] == "slave" {
 		e.registerConstMetricGauge(ch, "slave_info", 1,
 			keyValues["master_host"],
 			keyValues["master_port"],
-			keyValues["slave_read_only"])
+			keyValues["slave_read_only"],
+			opt.Partition, opt.Host)
 	}
 }
 
@@ -239,9 +240,9 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 	// only slaves have this field
 	if fieldKey == "master_link_status" {
 		if fieldValue == "up" {
-			e.registerConstMetricGauge(ch, "master_link_up", 1, masterHost, masterPort, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "master_link_up", 1, masterHost, masterPort, opt.Partition, opt.Host)
 		} else {
-			e.registerConstMetricGauge(ch, "master_link_up", 0, masterHost, masterPort, opt.Partition, opt.Instance)
+			e.registerConstMetricGauge(ch, "master_link_up", 0, masterHost, masterPort, opt.Partition, opt.Host)
 		}
 		return true
 	}
@@ -249,7 +250,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 
 	case "master_last_io_seconds_ago", "slave_repl_offset", "master_sync_in_progress":
 		val, _ := strconv.Atoi(fieldValue)
-		e.registerConstMetricGauge(ch, fieldKey, float64(val), masterHost, masterPort, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, fieldKey, float64(val), masterHost, masterPort, opt.Partition, opt.Host)
 		return true
 	}
 
@@ -259,7 +260,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 			"connected_slave_offset_bytes",
 			slaveOffset,
 			slaveIP, slavePort, slaveState,
-	  		opt.Partition, opt.Instance,
+	  		opt.Partition, opt.Host,
 		)
 
 		if slaveLag > -1 {
@@ -267,7 +268,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 				"connected_slave_lag_seconds",
 				slaveLag,
 				slaveIP, slavePort, slaveState,
-				opt.Partition, opt.Instance,
+				opt.Partition, opt.Host,
 			)
 		}
 		return true
@@ -279,7 +280,7 @@ func (e *Exporter) handleMetricsReplication(ch chan<- prometheus.Metric, masterH
 func (e *Exporter) handleMetricsServer(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	if fieldKey == "uptime_in_seconds" {
 		if uptime, err := strconv.ParseFloat(fieldValue, 64); err == nil {
-			e.registerConstMetricGauge(ch, "start_time_seconds", float64(time.Now().Unix())-uptime, e.options.Partition, e.options.Instance)
+			e.registerConstMetricGauge(ch, "start_time_seconds", float64(time.Now().Unix())-uptime, e.options.Partition, e.options.Host)
 		}
 	}
 }
@@ -382,17 +383,17 @@ func parseMetricsErrorStats(fieldKey string, fieldValue string) (errorType strin
 func (e *Exporter) handleMetricsCommandStats(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	opt := e.options
 	if cmd, calls, rejectedCalls, failedCalls, usecTotal, extendedStats, err := parseMetricsCommandStats(fieldKey, fieldValue); err == nil {
-		e.registerConstMetric(ch, "commands_total", calls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
-		e.registerConstMetric(ch, "commands_duration_seconds_total", usecTotal/1e6, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
+		e.registerConstMetric(ch, "commands_total", calls, prometheus.CounterValue, cmd, opt.Partition, opt.Host)
+		e.registerConstMetric(ch, "commands_duration_seconds_total", usecTotal/1e6, prometheus.CounterValue, cmd, opt.Partition, opt.Host)
 		if extendedStats {
-			e.registerConstMetric(ch, "commands_rejected_calls_total", rejectedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
-			e.registerConstMetric(ch, "commands_failed_calls_total", failedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Instance)
+			e.registerConstMetric(ch, "commands_rejected_calls_total", rejectedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Host)
+			e.registerConstMetric(ch, "commands_failed_calls_total", failedCalls, prometheus.CounterValue, cmd, opt.Partition, opt.Host)
 		}
 	}
 }
 
 func (e *Exporter) handleMetricsErrorStats(ch chan<- prometheus.Metric, fieldKey string, fieldValue string) {
 	if errorPrefix, count, err := parseMetricsErrorStats(fieldKey, fieldValue); err == nil {
-		e.registerConstMetric(ch, "errors_total", count, prometheus.CounterValue, errorPrefix, e.options.Partition, e.options.Instance)
+		e.registerConstMetric(ch, "errors_total", count, prometheus.CounterValue, errorPrefix, e.options.Partition, e.options.Host)
 	}
 }

@@ -28,7 +28,7 @@ func (e *Exporter) extractLuaScriptMetrics(ch chan<- prometheus.Metric, c redis.
 			log.Errorf("Error parsing lua script results, err: %s", err)
 			return err
 		}
-		e.registerConstMetricGauge(ch, "script_values", val, key, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "script_values", val, key, opt.Partition, opt.Host)
 	}
 	return nil
 }

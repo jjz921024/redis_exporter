@@ -31,8 +31,8 @@ func (e *Exporter) extractLatencyMetrics(ch chan<- prometheus.Metric, c redis.Co
 			var spikeLast, spikeDuration, max int64
 			if _, err := redis.Scan(latencyResult, &eventName, &spikeLast, &spikeDuration, &max); err == nil {
 				spikeDurationSeconds := float64(spikeDuration) / 1e3
-				e.registerConstMetricGauge(ch, "latency_spike_last", float64(spikeLast), eventName, opt.Partition, opt.Instance)
-				e.registerConstMetricGauge(ch, "latency_spike_duration_seconds", spikeDurationSeconds, eventName, opt.Partition, opt.Instance)
+				e.registerConstMetricGauge(ch, "latency_spike_last", float64(spikeLast), eventName, opt.Partition, opt.Host)
+				e.registerConstMetricGauge(ch, "latency_spike_duration_seconds", spikeDurationSeconds, eventName, opt.Partition, opt.Host)
 			}
 		}
 	}

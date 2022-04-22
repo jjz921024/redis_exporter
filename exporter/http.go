@@ -112,16 +112,16 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 	for _, n := range info.Nodes {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("error %s at scrape node:%s\n", err, n.Instance)
+				log.Printf("error %s at scrape node:%s\n", err, n.Host)
 			}
 		}()
 
 		opts := e.options	
 		opts.Registry = registry
 		opts.Partition = n.Partition
-		opts.Instance = n.Instance
+		opts.Host = n.Host
 
-		_, err := NewRedisExporter(n.Instance, opts)
+		_, err := NewRedisExporter(n.Host, opts)
 		if err != nil {
 			http.Error(w, "NewRedisExporter() err: err", http.StatusBadRequest)
 			e.targetScrapeRequestErrors.Inc()

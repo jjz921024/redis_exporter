@@ -9,6 +9,6 @@ type ClusterInfo struct {
 // NodeInfo 表示一个redis实例, 包含对于ip和port, 还有其归属分区
 type NodeInfo struct {
 	Partition string
-	Instance  string
+	Host	  string
 }
 

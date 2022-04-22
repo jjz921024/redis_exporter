@@ -17,7 +17,7 @@ func (e *Exporter) handleMetricsSentinel(ch chan<- prometheus.Metric, fieldKey s
 
 	case "sentinel_masters", "sentinel_tilt", "sentinel_running_scripts", "sentinel_scripts_queue_length", "sentinel_simulate_failure_flags":
 		val, _ := strconv.Atoi(fieldValue)
-		e.registerConstMetricGauge(ch, fieldKey, float64(val), opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, fieldKey, float64(val), opt.Partition, opt.Host)
 		return true
 	}
 
@@ -26,9 +26,9 @@ func (e *Exporter) handleMetricsSentinel(ch chan<- prometheus.Metric, fieldKey s
 		if masterStatus == "ok" {
 			masterStatusNum = 1
 		}
-		e.registerConstMetricGauge(ch, "sentinel_master_status", masterStatusNum, masterName, masterAddress, masterStatus, opt.Partition, opt.Instance)
-		e.registerConstMetricGauge(ch, "sentinel_master_slaves", masterSlaves, masterName, masterAddress, opt.Partition, opt.Instance)
-		e.registerConstMetricGauge(ch, "sentinel_master_sentinels", masterSentinels, masterName, masterAddress, opt.Partition, opt.Instance)
+		e.registerConstMetricGauge(ch, "sentinel_master_status", masterStatusNum, masterName, masterAddress, masterStatus, opt.Partition, opt.Host)
+		e.registerConstMetricGauge(ch, "sentinel_master_slaves", masterSlaves, masterName, masterAddress, opt.Partition, opt.Host)
+		e.registerConstMetricGauge(ch, "sentinel_master_sentinels", masterSentinels, masterName, masterAddress, opt.Partition, opt.Host)
 		return true
 	}
 
@@ -70,11 +70,11 @@ func (e *Exporter) extractSentinelMetrics(ch chan<- prometheus.Metric, c redis.C
 
 		sentinelDetails, _ := redis.Values(doRedisCmd(c, "SENTINEL", "SENTINELS", masterName))
 		log.Debugf("Sentinel details for master %s: %s", masterName, sentinelDetails)
-		e.processSentinelSentinels(ch, sentinelDetails, masterName, masterAddr, opt.Partition, opt.Instance)
+		e.processSentinelSentinels(ch, sentinelDetails, masterName, masterAddr, opt.Partition, opt.Host)
 
 		slaveDetails, _ := redis.Values(doRedisCmd(c, "SENTINEL", "SLAVES", masterName))
 		log.Debugf("Slave details for master %s: %s", masterName, slaveDetails)
-		e.processSentinelSlaves(ch, slaveDetails, masterName, masterAddr, opt.Partition, opt.Instance)
+		e.processSentinelSlaves(ch, slaveDetails, masterName, masterAddr, opt.Partition, opt.Host)
 	}
 }
 
