@@ -50,10 +50,14 @@ func init() {
 // 若传入集群名和当前监测的集群不同，则会自动切换
 func GetCurrentClusterInfo(clusterName string) (*ClusterInfo, error) {
 	if clusterName != CurrentClusterName {
-		log.Printf("change cluster from:%s to %s\n", CurrentClusterName, clusterName)
+		log.Printf("detect cluster has changed, from:%s to %s\n", CurrentClusterName, clusterName)
 		if err := updateCurrentClusterInfo(clusterName); err != nil {
 			return nil, err
 		}
+	}
+	if clusterInfo == nil {
+		log.Println("cluster info is nil")
+		return nil, errors.New("cluster info is nil")
 	}
 	mu.RLock()
 	defer mu.RUnlock()
@@ -61,14 +65,16 @@ func GetCurrentClusterInfo(clusterName string) (*ClusterInfo, error) {
 }
 
 func updateCurrentClusterInfo(clusterName string) error {
-	CurrentClusterName = clusterName
 	info, err := getAssembleInfo(clusterName)
 	if err != nil {
 		log.Printf("update cluster info err: %s\n", err)
 		return errors.New("update cluster infor err:" + err.Error())
 	}
 	mu.Lock()
-	defer mu.Unlock()
+	defer func() {
+		CurrentClusterName = clusterName
+		mu.Unlock()
+	}()
 	clusterInfo = info
 	return nil
 }
