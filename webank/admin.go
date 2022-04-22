@@ -32,7 +32,7 @@ func getEnv(key string, defaultVal string) string {
 
 func init() {
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 
 		for range ticker.C {
