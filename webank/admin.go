@@ -125,6 +125,7 @@ type assembleResponse struct {
 // RPD|RPD_GENERAL_REDIS_NODESET_1_CACHE|1|169.254.149.66:30001,169.254.149.66:30002,169.254.149.66:30003
 func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 	content := strings.Trim(string(data), "\"")
+	c.Name = CurrentClusterName
 	// 处理每个分区的数据
 	for _, s := range strings.Split(content, ";") {
 		// 取num和host, 包含全部主从节点
@@ -133,19 +134,21 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 			continue
 		}
 
-		num := split[2]
+		p := PartitionInfo{
+			Name:  split[1],
+			Num:   split[2],
+		}
 
 		hosts := strings.Split(split[3], ",")
 		nodes := make([]NodeInfo, len(hosts))
 		for i, h := range hosts {
 			nodes[i] = NodeInfo{
-				Partition: num,
+				PartitionNum: p.Num,
 				Host:  h,
 			}
 		}
-
-		c.Name = CurrentClusterName
-		c.Nodes = nodes
+		p.Nodes = nodes
+		c.Partitions = append(c.Partitions, p)
 	}
 	return nil
 }

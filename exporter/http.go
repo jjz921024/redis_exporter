@@ -108,8 +108,9 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registry := prometheus.NewRegistry()
+	scrapedPartition := []string{}
 
-	for _, n := range info.Nodes {
+	for _, n := range info.GetNodes() {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("error %s at scrape node:%s\n", err, n.Host)
@@ -118,10 +119,17 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 
 		opts := e.options	
 		opts.Registry = registry
-		opts.Partition = n.Partition
+		opts.Partition = n.PartitionNum
 		opts.Host = n.Host
 
-		_, err := NewRedisExporter(n.Host, opts)
+		e, err := NewRedisExporter(n.Host, opts)
+
+		if !Contains(scrapedPartition, n.PartitionNum) {
+			scrapedPartition = append(scrapedPartition, n.PartitionNum)
+			log.Printf("scrape partition:%s\n", n.PartitionNum)
+			NewClusterExporter(e, opts)
+		}
+
 		if err != nil {
 			http.Error(w, "NewRedisExporter() err: err", http.StatusBadRequest)
 			e.targetScrapeRequestErrors.Inc()
