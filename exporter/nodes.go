@@ -36,10 +36,15 @@ func (e *Exporter) extractClusterNodesMetrics(ch chan<- prometheus.Metric, nodes
 			role = "master"
 		}
 
+		status := "success"
+		if strings.Contains(element[2], "fail") || element[7] != "connected" {
+			status = "fail"
+		}
+
 		infos[element[0]] = nodeInfo{
 			host:   strings.Split(element[1], "@")[0],
 			role:   role,
-			status: element[7],
+			status: status,
 		}
 	}
 
