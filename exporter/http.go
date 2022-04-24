@@ -22,10 +22,10 @@ func (e *Exporter) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func (e *Exporter) indexHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(`<html>
-<head><title>Redis Exporter ` + e.buildInfo.Version + `</title></head>
+<head><title>WeRedis Exporter</title></head>
 <body>
-<h1>Redis Exporter ` + e.buildInfo.Version + `</h1>
-<p><a href='` + e.options.MetricsPath + `'>Metrics</a></p>
+<h1>WeRedis Exporter</h1>
+<p>CurrentClusterName: ` + 	webank.CurrentClusterName + `</p>
 </body>
 </html>
 `))

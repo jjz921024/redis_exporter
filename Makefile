@@ -1,17 +1,19 @@
 .PHONE: build
 build:
-	rm -rf .build | true && \
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/redis_exporter && \
+	rm -rf apps | true && \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o apps/redis_exporter && \
 	echo "done"
 
 .PHONE: clean
 clean:
-	rm -rf build
+	rm -rf apps
 
 .PHONE: dist
 dist: build
-	tar -cvf redis-exporter.tar -C build . && tar -rvf redis-exporter.tar -C dist .
+	tar -cvf redis_exporter.tar ../redis_exporter/apps && tar -rvf redis_exporter.tar ../redis_exporter/bin
+	# tar -cvf redis_exporter.tar -C apps . && tar -rvf redis_exporter.tar -C bin .
 
 .PHONE dist-zip
 dist: build
-	zip -j redis-exporter.zip build/* dist/*
+	zip redis_exporter.zip ../redis_exporter/apps/* ../redis_exporter/bin/*
+	#zip -j redis_exporter.zip apps/* bin/*
