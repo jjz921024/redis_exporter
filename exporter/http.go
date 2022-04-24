@@ -25,7 +25,7 @@ func (e *Exporter) indexHandler(w http.ResponseWriter, r *http.Request) {
 <head><title>WeRedis Exporter</title></head>
 <body>
 <h1>WeRedis Exporter</h1>
-<p>CurrentClusterName: ` + 	webank.CurrentClusterName + `</p>
+<p>CurrentClusterName: ` + 	*webank.CurrentClusterName + `</p>
 </body>
 </html>
 `))
@@ -96,7 +96,7 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 	name := params.Get("clusterName")
 
 	if !params.Has("clusterName") || name == "" {
-		webank.CurrentClusterName = ""
+		*webank.CurrentClusterName = ""
 		w.Write([]byte("# cluster name is nil"))
 		return
 	}
@@ -126,7 +126,6 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 
 		if !Contains(scrapedPartition, n.PartitionNum) {
 			scrapedPartition = append(scrapedPartition, n.PartitionNum)
-			log.Printf("scrape partition:%s\n", n.PartitionNum)
 			NewClusterExporter(e, opts)
 		}
 

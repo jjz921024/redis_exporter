@@ -9,15 +9,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	adminUrl           = *flag.String("admin-url", getEnv("ADMIN_URL", "http://169.254.149.66:8080"), "WE-REDIS ADMIN URL OF WEBANK")
-	assembleInfoPath   = *flag.String("assmeble-info-path", getEnv("ASSMEBLE_INFO_PATH", "/weredis/clusterinfo/v1/getAssembleInfo"), "assemble info path")
-	CurrentClusterName = *flag.String("cluster-name", getEnv("CLUSTER_NAME", ""), "exporter cluster name")
+	adminUrl           = flag.String("admin-url", getEnv("ADMIN_URL", "http://10.107.120.69:19999"), "WE-REDIS ADMIN URL OF WEBANK")
+	assembleInfoPath   = flag.String("assmeble-info-path", getEnv("ASSMEBLE_INFO_PATH", "/weredis/clusterinfo/v1/getAssembleInfo"), "assemble info path")
+	CurrentClusterName = flag.String("cluster-name", getEnv("CLUSTER_NAME", ""), "exporter cluster name")
 
 	clusterInfo *ClusterInfo
 	mu          sync.RWMutex
@@ -32,16 +33,16 @@ func getEnv(key string, defaultVal string) string {
 
 func init() {
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
+		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
 		for range ticker.C {
 			// 定时刷新当前维护的集群信息
-			if CurrentClusterName == "" {
+			if *CurrentClusterName == "" {
 				log.Println("ticker refresh stop, beacuse current cluster name is nil")
 				continue
 			}
-			updateCurrentClusterInfo(CurrentClusterName)
+			updateCurrentClusterInfo(*CurrentClusterName)
 		}
 	}()
 }
@@ -49,8 +50,8 @@ func init() {
 // 获取当前exporter监测的集群信息
 // 若传入集群名和当前监测的集群不同，则会自动切换
 func GetCurrentClusterInfo(clusterName string) (*ClusterInfo, error) {
-	if clusterName != CurrentClusterName {
-		log.Printf("detect cluster has changed, from:%s to %s\n", CurrentClusterName, clusterName)
+	if clusterName != *CurrentClusterName {
+		log.Printf("detect cluster has changed, from:%s to %s\n", *CurrentClusterName, clusterName)
 		if err := updateCurrentClusterInfo(clusterName); err != nil {
 			return nil, err
 		}
@@ -72,7 +73,7 @@ func updateCurrentClusterInfo(clusterName string) error {
 	}
 	mu.Lock()
 	defer func() {
-		CurrentClusterName = clusterName
+		*CurrentClusterName = clusterName
 		mu.Unlock()
 	}()
 	clusterInfo = info
@@ -80,13 +81,16 @@ func updateCurrentClusterInfo(clusterName string) error {
 }
 
 func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
-	req, err := http.NewRequest("GET", adminUrl+assembleInfoPath, nil)
+	req, err := http.NewRequest("GET", *adminUrl+*assembleInfoPath, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	q := req.URL.Query()
 	q.Set("clusterName", clusterName)
+	q.Set("componentRole", "proxy")
+	q.Set("componentIp", "10.108.192.99")
+	q.Set("componentPort", "30300")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := http.DefaultClient.Do(req)
@@ -100,7 +104,7 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
-		return nil, errors.New("admin request fail")
+		return nil, errors.New("stat request fail, code:" + strconv.Itoa(resp.StatusCode))
 	}
 
 	result := &assembleResponse{}
@@ -125,7 +129,7 @@ type assembleResponse struct {
 // RPD|RPD_GENERAL_REDIS_NODESET_1_CACHE|1|169.254.149.66:30001,169.254.149.66:30002,169.254.149.66:30003
 func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 	content := strings.Trim(string(data), "\"")
-	c.Name = CurrentClusterName
+	c.Name = *CurrentClusterName
 	// 处理每个分区的数据
 	for _, s := range strings.Split(content, ";") {
 		// 取num和host, 包含全部主从节点
@@ -135,8 +139,8 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 		}
 
 		p := PartitionInfo{
-			Name:  split[1],
-			Num:   split[2],
+			Name: split[1],
+			Num:  split[2],
 		}
 
 		hosts := strings.Split(split[3], ",")
@@ -144,7 +148,7 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 		for i, h := range hosts {
 			nodes[i] = NodeInfo{
 				PartitionNum: p.Num,
-				Host:  h,
+				Host:         h,
 			}
 		}
 		p.Nodes = nodes
