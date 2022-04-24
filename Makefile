@@ -6,13 +6,15 @@ build:
 
 .PHONE: clean
 clean:
-	! rm redis-exporter.tar
-	! rm redis-exporter.zip
-	! rm -rf apps
+	rm redis-exporter.tar | true && \
+	rm redis-exporter.zip | true && \
+	rm -rf apps | true
 
 .PHONE: dist
 dist: build
-	tar -cvf redis-exporter.tar --transform 's,^,redis-exporter/,S' apps && tar -rvf redis-exporter.tar --transform 's,^,redis-exporter/,S' bin
+	tar -cvf redis-exporter.tar --transform 's,^,redis-exporter/,S' apps && \
+	tar -rvf redis-exporter.tar --transform 's,^,redis-exporter/,S' bin && \
+	tar -rvf redis-exporter.tar --transform 's,^,redis-exporter/,S' conf
 	# tar -cvf redis_exporter.tar -C apps . && tar -rvf redis_exporter.tar -C bin .
 
 .PHONE: dist-zip

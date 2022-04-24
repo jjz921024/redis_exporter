@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -122,6 +124,13 @@ func main() {
 		log.Fatalf("Couldn't parse connection timeout duration, err: %s", err)
 	}
 
+	// aomp公钥解密
+	pwd, err := decryptRedisPasswd()
+	if err != nil {
+		log.Fatalf("decrypt passwd err: %s", err)
+	}
+	*redisPwd = pwd
+
 	passwordMap := make(map[string]string)
 	if *redisPwd == "" && *redisPwdFile != "" {
 		passwordMap, err = exporter.LoadPwdFile(*redisPwdFile)
@@ -214,4 +223,37 @@ func main() {
 	} else {
 		log.Fatal(http.ListenAndServe(*listenAddress, exp))
 	}
+}
+
+func decryptRedisPasswd() (string, error) {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+    if err != nil {
+		return "", err
+    } 
+	
+	bytes, err := ioutil.ReadFile(filepath.Join(dir, "conf/exporter.conf"))
+	if err != nil {
+		return "", err
+	}
+
+	prefix := "{RSA}"
+	content := string(bytes)
+	if !strings.HasPrefix(content, prefix) {
+		return content, nil
+	}
+
+	aompPubKey, err := ioutil.ReadFile(filepath.Join(dir, "conf/aomp-public.pem"))
+	if err != nil {
+		return "", err
+	}
+	appPrivKey, err := ioutil.ReadFile(filepath.Join(dir, "conf/proxy-private.pem"))
+	if err != nil {
+		return "", err
+	}
+
+	pwd := strings.TrimPrefix(content, prefix)
+	if pwd, err = exporter.AompPasswordDecrypt(pwd, string(aompPubKey), string(appPrivKey)); err != nil {
+		return "", err
+	}
+	return pwd, nil
 }

@@ -16,3 +16,4 @@ contrib/tls/redis.key
 apps/
 *.tar
 *.zip
+conf/*.pem

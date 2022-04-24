@@ -33,7 +33,7 @@ func getEnv(key string, defaultVal string) string {
 
 func init() {
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(3 * time.Minute)
 		defer ticker.Stop()
 
 		for range ticker.C {
@@ -88,9 +88,7 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 
 	q := req.URL.Query()
 	q.Set("clusterName", clusterName)
-	q.Set("componentRole", "proxy")
-	q.Set("componentIp", "10.108.192.99")
-	q.Set("componentPort", "30300")
+	q.Set("componentRole", "exporter")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := http.DefaultClient.Do(req)
@@ -112,7 +110,7 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 	if err != nil {
 		return nil, err
 	} else if result.Code != "0" {
-		return nil, errors.New("fail")
+		return nil, errors.New("fail: " + result.Msg)
 	}
 
 	return &result.ResultData, nil
