@@ -125,11 +125,10 @@ func main() {
 	}
 
 	// aomp公钥解密
-	pwd, err := decryptRedisPasswd()
+	*redisPwd, err = decryptRedisPasswd(*redisPwd)
 	if err != nil {
 		log.Fatalf("decrypt passwd err: %s", err)
 	}
-	*redisPwd = pwd
 
 	passwordMap := make(map[string]string)
 	if *redisPwd == "" && *redisPwdFile != "" {
@@ -225,22 +224,16 @@ func main() {
 	}
 }
 
-func decryptRedisPasswd() (string, error) {
+func decryptRedisPasswd(pwd string) (string, error) {
 	//dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir, err := os.Getwd()
     if err != nil {
 		return "", err
     } 
-	
-	bytes, err := ioutil.ReadFile(filepath.Join(dir, "conf/exporter.conf"))
-	if err != nil {
-		return "", err
-	}
 
 	prefix := "{RSA}"
-	content := string(bytes)
-	if !strings.HasPrefix(content, prefix) {
-		return content, nil
+	if !strings.HasPrefix(pwd, prefix) {
+		return pwd, nil
 	}
 
 	aompPubKey, err := ioutil.ReadFile(filepath.Join(dir, "conf/aomp-public.pem"))
@@ -252,7 +245,7 @@ func decryptRedisPasswd() (string, error) {
 		return "", err
 	}
 
-	pwd := strings.TrimPrefix(content, prefix)
+	pwd = strings.TrimPrefix(pwd, prefix)
 	if pwd, err = exporter.AompPasswordDecrypt(pwd, string(aompPubKey), string(appPrivKey)); err != nil {
 		return "", err
 	}

@@ -14,9 +14,20 @@ SAVED="`pwd`"
 cd "`dirname \"$PRG\"`/.." >/dev/null
 APP_HOME="`pwd -P`"
 
-echo "APP_HOME: " $APP_HOME
 cd ${APP_HOME}
 
-nohup ./apps/redis-exporter --web.listen-address=:9121 -export-client-list > exporter.log 2>&1 & echo $! > bin/sys.pid
+ARGS="--web.listen-address=:9121 -export-client-list"
+
+if [ ! -f conf/rds.txt ]; then
+    echo "not found rds.txt file"
+    exit -1
+fi
+
+PWD=`cat conf/rds.txt`
+if [ -z $PWD ]; then
+    ARGS=$ARGS " -redis.password="$PWD    
+fi
+
+nohup ./apps/redis-exporter ${ARGS} > exporter.log 2>&1 & echo $! > bin/sys.pid
 
 exit 0
