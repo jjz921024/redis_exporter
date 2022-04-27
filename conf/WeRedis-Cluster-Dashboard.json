@@ -17,7 +17,7 @@
   "gnetId": 763,
   "graphTooltip": 0,
   "id": 18,
-  "iteration": 1650804203225,
+  "iteration": 1651024987215,
   "links": [],
   "panels": [
     {
@@ -219,76 +219,69 @@
     },
     {
       "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": false,
-      "colors": [
-        "rgba(50, 172, 45, 0.97)",
-        "rgba(237, 129, 40, 0.89)",
-        "rgba(245, 54, 54, 0.9)"
-      ],
       "datasource": "Prometheus",
-      "decimals": 0,
-      "editable": true,
-      "error": false,
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "decimals": 0,
+          "mappings": [
+            {
+              "$$hashKey": "object:905",
+              "id": 0,
+              "op": "=",
+              "text": "N/A",
+              "type": 1,
+              "value": "null"
+            }
+          ],
+          "max": 100,
+          "min": 0,
+          "nullValueMode": "connected",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 80
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 95
+              }
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
-      "format": "percent",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": true,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
-      },
       "gridPos": {
         "h": 7,
-        "w": 4,
+        "w": 6,
         "x": 4,
         "y": 0
       },
       "hideTimeOverride": true,
       "id": 11,
       "interval": null,
-      "isNew": true,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "$$hashKey": "object:902",
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "$$hashKey": "object:903",
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
-      "tableColumn": "",
+      "pluginVersion": "7.3.7",
       "targets": [
         {
           "expr": "100 * (redis_memory_used_bytes{host=~\"$host\"}  / redis_memory_max_bytes{host=~\"$host\"} )",
@@ -301,148 +294,21 @@
           "step": 2
         }
       ],
-      "thresholds": "80,95",
       "timeFrom": "1m",
       "timeShift": null,
       "title": "Memory Usage",
-      "type": "singlestat",
-      "valueFontSize": "80%",
-      "valueMaps": [
-        {
-          "$$hashKey": "object:905",
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "editable": true,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "grid": {},
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 0
-      },
-      "hiddenSeries": false,
-      "id": 2,
-      "isNew": true,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "connected",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.3.7",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "rate(redis_commands_processed_total{host=~\"$host\"}[1m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "",
-          "metric": "A",
-          "refId": "A",
-          "step": 240,
-          "target": ""
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Commands Executed / sec",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:126",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:127",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "gauge"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "align": null,
+            "align": "left",
             "displayMode": "auto",
             "filterable": false
           },
-          "mappings": [
-            {
-              "from": "",
-              "id": 1,
-              "text": "",
-              "to": "",
-              "type": 1
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -467,6 +333,15 @@
               {
                 "id": "custom.width",
                 "value": 180
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "点击查看实例详情",
+                    "url": "http://10.107.96.42:30008/d/-E4nANwnk/redis-dashboard-for-prometheus-redis-exporter-1-x?orgId=3&refresh=30s&var-host=${__data.fields[host]}&var-cluster=${cluster}&var-master_ip=${master_ip}&var-master_port=${master_port}&var-partition=${partition}&var-port=${port}&var-ip=${ip}"
+                  }
+                ]
               }
             ]
           },
@@ -502,7 +377,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 235
+                "value": 252
               }
             ]
           },
@@ -518,7 +393,7 @@
               },
               {
                 "id": "custom.width",
-                "value": 82
+                "value": 112
               }
             ]
           },
@@ -530,7 +405,101 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 176
+                "value": 107
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "master_link_status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 164
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #B"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 178
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "master_link_status"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "- "
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "up",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  },
+                  {
+                    "from": "",
+                    "id": 2,
+                    "text": "down",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "aof_status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": null
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "from": "",
+                    "id": 1,
+                    "text": "ok",
+                    "to": "",
+                    "type": 1,
+                    "value": "1"
+                  },
+                  {
+                    "from": "",
+                    "id": 2,
+                    "text": "fail",
+                    "to": "",
+                    "type": 1,
+                    "value": "0"
+                  }
+                ]
+              },
+              {
+                "id": "noValue",
+                "value": "-"
               }
             ]
           }
@@ -538,8 +507,8 @@
       },
       "gridPos": {
         "h": 14,
-        "w": 8,
-        "x": 16,
+        "w": 14,
+        "x": 10,
         "y": 0
       },
       "id": 16,
@@ -563,6 +532,22 @@
           "interval": "",
           "legendFormat": "",
           "refId": "A"
+        },
+        {
+          "expr": "redis_master_link_up{job=~\"$cluster\"}",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "expr": "redis_aof_last_write_status{job=~\"$cluster\"}",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "C"
         }
       ],
       "timeFrom": null,
@@ -576,7 +561,7 @@
               "Time": true,
               "Value": true,
               "Value #A": true,
-              "Value #B": true,
+              "Value #B": false,
               "__name__": true,
               "instance": true,
               "job": true,
@@ -597,10 +582,25 @@
             "indexByName": {},
             "renameByName": {
               "Time": "",
-              "Value #B": "",
-              "Value #C": "repl_offset",
+              "Value #B": "master_link_status",
+              "Value #C": "aof_status",
               "instance": "",
               "master_host": ""
+            }
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Value #B": "master_link_status",
+              "Value #C": "aof_status"
             }
           }
         }
@@ -627,7 +627,7 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 8,
+        "w": 10,
         "x": 0,
         "y": 7
       },
@@ -735,8 +735,6 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "Prometheus",
-      "decimals": 2,
-      "description": "从节点同步offset",
       "editable": true,
       "error": false,
       "fieldConfig": {
@@ -750,12 +748,12 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 7
+        "w": 12,
+        "x": 0,
+        "y": 14
       },
       "hiddenSeries": false,
-      "id": 17,
+      "id": 2,
       "isNew": true,
       "legend": {
         "avg": false,
@@ -763,6 +761,118 @@
         "max": false,
         "min": false,
         "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.7",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "rate(redis_commands_processed_total{host=~\"$host\"}[1m])",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "metric": "A",
+          "refId": "A",
+          "step": 240,
+          "target": ""
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Commands Executed / sec",
+      "tooltip": {
+        "msResolution": false,
+        "shared": true,
+        "sort": 0,
+        "value_type": "cumulative"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:126",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:127",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "decimals": 2,
+      "description": "",
+      "editable": true,
+      "error": false,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "grid": {},
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "hiddenSeries": false,
+      "id": 17,
+      "isNew": true,
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": true,
         "total": false,
         "values": false
       },
@@ -790,18 +900,24 @@
           "instant": false,
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "",
+          "legendFormat": "Repl offset",
           "metric": "",
           "refId": "A",
           "step": 240,
           "target": ""
+        },
+        {
+          "expr": "redis_master_last_io_seconds_ago{host=~\"$host\"}",
+          "interval": "",
+          "legendFormat": "master_last_io_seconds_ago",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Repl Offset",
+      "title": "主从同步延迟",
       "tooltip": {
         "msResolution": false,
         "shared": true,
@@ -862,9 +978,9 @@
       "grid": {},
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 10,
         "x": 0,
-        "y": 14
+        "y": 21
       },
       "hiddenSeries": false,
       "id": 7,
@@ -962,6 +1078,72 @@
       }
     },
     {
+      "datasource": null,
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [
+            {
+              "from": "",
+              "id": 1,
+              "text": "",
+              "to": "",
+              "type": 1
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 2,
+        "x": 10,
+        "y": 21
+      },
+      "id": 25,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.3.7",
+      "targets": [
+        {
+          "expr": "redis_mem_fragmentation_ratio{host=~\"$host\"}",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "内存碎片率",
+      "type": "stat"
+    },
+    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -982,7 +1164,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 21
       },
       "hiddenSeries": false,
       "id": 10,
@@ -1095,7 +1277,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 21
+        "y": 28
       },
       "hiddenSeries": false,
       "id": 5,
@@ -1202,7 +1384,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 21
+        "y": 28
       },
       "hiddenSeries": false,
       "id": 14,
@@ -1310,7 +1492,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 28
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 21,
@@ -1420,7 +1602,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 28
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 23,
@@ -1529,7 +1711,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 13,
@@ -1648,7 +1830,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 35
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 8,
@@ -1770,7 +1952,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 49
       },
       "hiddenSeries": false,
       "id": 19,
@@ -1859,9 +2041,118 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "description": "slow log对列增长情况",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "hiddenSeries": false,
+      "id": 27,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.7",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "delta(redis_slowlog_length{host=~\"$host\"}[1m])",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {
+          "$$hashKey": "object:1076",
+          "colorMode": "warning",
+          "fill": true,
+          "line": true,
+          "op": "gt",
+          "value": 5,
+          "yaxis": "left"
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "slow log",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:767",
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:768",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
-  "refresh": "15m",
+  "refresh": "30s",
   "schemaVersion": 26,
   "style": "dark",
   "tags": [
@@ -1873,9 +2164,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "ISPD_V_REDIS_CLUSTER_CACHE",
-          "value": "ISPD_V_REDIS_CLUSTER_CACHE"
+          "selected": false,
+          "text": "CCPD_CS_REDIS_CLUSTER_CACHE",
+          "value": "CCPD_CS_REDIS_CLUSTER_CACHE"
         },
         "datasource": "Prometheus",
         "definition": "label_values(job)",
@@ -1901,8 +2192,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "10.108.192.184:9900",
-          "value": "10.108.192.184:9900"
+          "text": "10.107.97.231:11100",
+          "value": "10.107.97.231:11100"
         },
         "datasource": "Prometheus",
         "definition": "label_values(partition_node_status{job=\"$cluster\"},  host)",
@@ -1928,8 +2219,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "1",
-          "value": "1"
+          "text": "0",
+          "value": "0"
         },
         "datasource": "Prometheus",
         "definition": "label_values(partition_node_status{job=\"$cluster\"}, partition)",
@@ -1941,14 +2232,9 @@
         "name": "partition",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "0",
             "value": "0"
-          },
-          {
-            "selected": true,
-            "text": "1",
-            "value": "1"
           }
         ],
         "query": "label_values(partition_node_status{job=\"$cluster\"}, partition)",
@@ -2024,8 +2310,8 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "text": "169.254.149.66",
-          "value": "169.254.149.66"
+          "text": "10.107.97.231:11101",
+          "value": "10.107.97.231:11101"
         },
         "datasource": "Prometheus",
         "definition": "label_values(host)",
@@ -2037,7 +2323,7 @@
         "name": "ip",
         "options": [
           {
-            "selected": true,
+            "selected": false,
             "text": "169.254.149.66",
             "value": "169.254.149.66"
           }
@@ -2056,10 +2342,9 @@
       {
         "allValue": null,
         "current": {
-          "isNone": true,
           "selected": false,
-          "text": "None",
-          "value": ""
+          "text": "10.107.97.177",
+          "value": "10.107.97.177"
         },
         "datasource": "Prometheus",
         "definition": "label_values(redis_slave_repl_offset{host=\"$host\", job=\"$cluster\"}, master_host)",
@@ -2071,10 +2356,9 @@
         "name": "master_ip",
         "options": [
           {
-            "isNone": true,
             "selected": true,
-            "text": "None",
-            "value": ""
+            "text": "10.107.97.177",
+            "value": "10.107.97.177"
           }
         ],
         "query": "label_values(redis_slave_repl_offset{host=\"$host\", job=\"$cluster\"}, master_host)",
@@ -2091,10 +2375,9 @@
       {
         "allValue": null,
         "current": {
-          "isNone": true,
           "selected": false,
-          "text": "None",
-          "value": ""
+          "text": "11102",
+          "value": "11102"
         },
         "datasource": "Prometheus",
         "definition": "label_values(redis_slave_repl_offset{host=\"$host\", job=\"$cluster\"}, master_port)",
@@ -2106,10 +2389,9 @@
         "name": "master_port",
         "options": [
           {
-            "isNone": true,
             "selected": true,
-            "text": "None",
-            "value": ""
+            "text": "11102",
+            "value": "11102"
           }
         ],
         "query": "label_values(redis_slave_repl_offset{host=\"$host\", job=\"$cluster\"}, master_port)",
@@ -2126,7 +2408,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-3h",
     "to": "now"
   },
   "timepicker": {
@@ -2155,7 +2437,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Redis Dashboard for Prometheus Redis Exporter 1.x",
+  "title": "WeRedis Cluster Dashboard",
   "uid": "-E4nANwnk",
-  "version": 7
+  "version": 25
 }

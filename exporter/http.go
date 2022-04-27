@@ -1,15 +1,23 @@
 package exporter
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/oliver006/redis_exporter/webank"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/time/rate"
+)
+
+var (
+	limit = rate.Every(time.Second * 10)
+ 	limiter = rate.NewLimiter(limit, 3)
 )
 
 func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +40,13 @@ func (e *Exporter) indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Exporter) scrapeHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	err := limiter.Wait(ctx)
+	if err != nil {
+		http.Error(w, "request is too frequent", http.StatusBadRequest)
+		return
+	}
+
 	target := r.URL.Query().Get("target")
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", http.StatusBadRequest)
@@ -92,6 +107,13 @@ func (e *Exporter) scrapeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	err := limiter.Wait(ctx)
+	if err != nil {
+		http.Error(w, "request is too frequent", http.StatusBadRequest)
+		return
+	}
+
 	params := r.URL.Query()
 	name := params.Get("clusterName")
 
