@@ -12,10 +12,13 @@ clean:
 
 .PHONE: dist
 dist: build
-	tar -cvf redis-exporter.tar --transform 's,^,redis-exporter/,S' apps && \
-	tar -rvf redis-exporter.tar --transform 's,^,redis-exporter/,S' bin && \
-	tar -rvf redis-exporter.tar --transform 's,^,redis-exporter/,S' conf
-	# tar -cvf redis_exporter.tar -C apps . && tar -rvf redis_exporter.tar -C bin .
+	tar -cvf redis-exporter.tar apps/ && \
+	tar -rvf redis-exporter.tar bin/ && \
+	tar -rvf redis-exporter.tar conf/ && \
+	tar -zcf target/redis-exporter.tar.gz redis-exporter.tar --remove-files
+	# tar -cvf redis-exporter.tar --transform 's,^,redis-exporter/,S' apps # 替换目录
+	# tar -cvf redis_exporter.tar -C apps . && tar -rvf redis_exporter.tar -C bin . # 不保留原目录
+	# tar -cvf redis_exporter.tar apps/  # 保留原目录
 
 .PHONE: dist-zip
 dist-zip: build
