@@ -17,3 +17,4 @@ apps/
 *.tar
 *.zip
 conf/*.pem
+target/*
