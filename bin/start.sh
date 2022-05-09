@@ -24,8 +24,8 @@ if [ ! -f conf/rds.txt ]; then
 fi
 
 PWD=`cat conf/rds.txt`
-if [ -z $PWD ]; then
-    ARGS=$ARGS " -redis.password="$PWD    
+if [ -n "$PWD" ]; then
+    ARGS="$ARGS -redis.password=$PWD"
 fi
 
 nohup ./apps/redis-exporter ${ARGS} > exporter.log 2>&1 & echo $! > bin/sys.pid
