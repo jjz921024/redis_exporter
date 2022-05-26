@@ -76,7 +76,8 @@ type Options struct {
 	PingOnConnect         bool
 	Registry              *prometheus.Registry
 	BuildInfo             BuildInfo
-	Partition			  string
+	Partition		  	  string
+	PartitionName	      string
 	Host				  string
 }
 

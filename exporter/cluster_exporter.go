@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"github.com/gomodule/redigo/redis"
+	"github.com/oliver006/redis_exporter/webank"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,6 +29,7 @@ func (e *ClusterExporter) Collect(ch chan<- prometheus.Metric) {
 	if err := e.scrapeRedisCluster(ch); err != nil {
 		log.Warnf("scrape partition:%s for cluster nodes info error:%s\n", opt.Partition, err.Error())
 	}
+	webank.AdmCh <- struct{}{}
 }
 
 func (e *ClusterExporter) scrapeRedisCluster(ch chan<- prometheus.Metric) error {
@@ -40,6 +42,7 @@ func (e *ClusterExporter) scrapeRedisCluster(ch chan<- prometheus.Metric) error 
 	defer c.Close()
 
 	if nodes, err := redis.String(doRedisCmd(c, "CLUSTER", "NODES")); err == nil {
+		webank.ClusterTopology[e.options.PartitionName] = nodes
 		e.extractClusterNodesMetrics(ch, nodes)
 	}
 

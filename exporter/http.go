@@ -142,10 +142,13 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 		opts := e.options	
 		opts.Registry = registry
 		opts.Partition = n.PartitionNum
+		opts.PartitionName = n.PartitionName
 		opts.Host = n.Host
 
 		e, err := NewRedisExporter(n.Host, opts)
 
+		// 每个分区选一个节点, 来采集cluster nodes信息
+		// 每次请求时所选的分区都不同
 		if !Contains(scrapedPartition, n.PartitionNum) {
 			scrapedPartition = append(scrapedPartition, n.PartitionNum)
 			NewClusterExporter(e, opts)

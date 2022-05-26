@@ -17,6 +17,7 @@ type PartitionInfo struct {
 // NodeInfo 表示一个redis实例, 包含对于ip和port, 还有其归属分区
 type NodeInfo struct {
 	PartitionNum string
+	PartitionName string
 	Host         string
 }
 
@@ -37,4 +38,12 @@ func (c *ClusterInfo) PickNodeForEachPartition() []NodeInfo {
 		n = append(n, p.Nodes[idx])
 	}
 	return n
+}
+
+type ClusterTopo struct {
+	Id 			 string
+	Ip			 string
+	Port		 int
+	Role		 string
+	Status		 string
 }

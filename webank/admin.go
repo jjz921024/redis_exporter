@@ -1,10 +1,10 @@
 package webank
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,15 +18,30 @@ import (
 var (
 	adminUrl           = flag.String("admin-url", getEnv("ADMIN_URL", "http://10.107.120.69:19999"), "WE-REDIS ADMIN URL OF WEBANK")
 	assembleInfoPath   = flag.String("assmeble-info-path", getEnv("ASSMEBLE_INFO_PATH", "/weredis/clusterinfo/v1/getAssembleInfo"), "assemble info path")
+	reportTopoPath     = flag.String("report-topo-path", getEnv("REPORT_TOPO_PATH", "/weredis/cluster/node/status/v1/"), "report cluster topology path")
+	enableReport	   = flag.Bool("enable-report-admin", getEnvBool("EANBLE_REPORT_ADMIN", true), "enable report admin")
 	CurrentClusterName = flag.String("cluster-name", getEnv("CLUSTER_NAME", ""), "exporter cluster name")
 
 	clusterInfo *ClusterInfo
 	mu          sync.RWMutex
+
+	AdmCh = make(chan interface{})
+	ClusterTopology map[string]string = make(map[string]string)
 )
 
 func getEnv(key string, defaultVal string) string {
 	if envVal, ok := os.LookupEnv(key); ok {
 		return envVal
+	}
+	return defaultVal
+}
+
+func getEnvBool(key string, defaultVal bool) bool {
+	if envVal, ok := os.LookupEnv(key); ok {
+		envBool, err := strconv.ParseBool(envVal)
+		if err == nil {
+			return envBool
+		}
 	}
 	return defaultVal
 }
@@ -45,6 +60,16 @@ func init() {
 			updateCurrentClusterInfo(*CurrentClusterName)
 		}
 	}()
+
+	if *enableReport {
+		log.Println("enable report cluster topology info to admin")
+		go func() {
+			for range AdmCh {
+				reportClusterTopology()
+			}
+		}()		
+	}
+
 }
 
 // 获取当前exporter监测的集群信息
@@ -93,7 +118,7 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("get assemble info err:%s\n", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -116,12 +141,21 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 	return &result.ResultData, nil
 }
 
-type assembleResponse struct {
+type response struct {
 	Code       string      `json:"code"`
 	Msg        string      `json:"msg"`
-	ResultData ClusterInfo `json:"resultData"`
 	Page       *string     `json:"page"`
 	Others     interface{} `json:"others"`
+}
+
+type assembleResponse struct {
+	response
+	ResultData ClusterInfo `json:"resultData"`
+}
+
+type reportResponse struct {
+	response
+	ResultData interface{} `json:"resultData"`
 }
 
 // RPD|RPD_GENERAL_REDIS_NODESET_1_CACHE|1|169.254.149.66:30001,169.254.149.66:30002,169.254.149.66:30003
@@ -146,6 +180,7 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 		for i, h := range hosts {
 			nodes[i] = NodeInfo{
 				PartitionNum: p.Num,
+				PartitionName: p.Name,
 				Host:         h,
 			}
 		}
@@ -153,4 +188,100 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 		c.Partitions = append(c.Partitions, p)
 	}
 	return nil
+}
+
+// 上报集群拓扑信息到admin
+func reportClusterTopology() {
+	// partition <--> nodes
+	topo := make(map[string]interface{}, len(ClusterTopology))
+	topo["clusterName"] = *CurrentClusterName
+
+	for name, nodes := range ClusterTopology {
+		arr := strings.Split(nodes, "\n")
+		n := []ClusterTopo{}
+
+		for _, line := range arr {
+			element := strings.Split(line, " ")
+			if len(element) < 8 {
+				//log.Printf("cluster info invalid:%s\n", line)
+				continue
+			}
+
+			id := element[0]
+
+			host := strings.Split(element[1], "@")[0]
+			s := strings.Split(host, ":")
+			if len(s) != 2 {
+				log.Printf("invalid host:%s\n", s)
+				continue
+			}
+			ip := s[0]
+			port, err := strconv.Atoi(s[1])
+			if err != nil {
+				log.Printf("parse port:%s err:%s\n", s[1], err.Error())
+				continue
+			}
+
+			role := element[2]
+			if !strings.Contains(role, "master") {
+				role = element[3]
+			} else {
+				role = "master"
+			}
+
+			status := "success"
+			if strings.Contains(element[2], "fail") || element[7] != "connected" {
+				status = "fail"
+			}
+
+			n = append(n, ClusterTopo{
+				Id: id,
+				Ip: ip,
+				Port: port,
+				Role:   role,
+				Status: status,
+			})
+		}
+		topo[name] = n
+	}
+
+	body, err := json.Marshal(topo)
+	if err != nil {
+		log.Printf("json encode err:%s", err.Error())
+		return
+	}
+
+	//log.Printf("%s", string(b))
+	req, err := http.NewRequest("POST", *adminUrl+*reportTopoPath, bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("json encode err:%s", err.Error())
+		return
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("report cluster topo err:%s\n", err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("report topo err:%s\n", err.Error())
+		return
+	} else if resp.StatusCode != 200 {
+		log.Printf("report topo reponse fail, code:%d\n", resp.StatusCode)
+		return
+	}
+
+	result := &reportResponse{}
+	err = json.Unmarshal(respBody, result)
+	if err != nil {
+		log.Printf("report topo response invalid err:%s, resp:%s\n", err.Error(), string(respBody))
+		return
+	} else if result.Code != "0" {
+		log.Printf("report topo response code:%s\n", result.Code)
+		return
+	}
+
 }
