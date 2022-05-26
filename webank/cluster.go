@@ -41,9 +41,9 @@ func (c *ClusterInfo) PickNodeForEachPartition() []NodeInfo {
 }
 
 type ClusterTopo struct {
-	Id 			 string
-	Ip			 string
-	Port		 int
-	Role		 string
-	Status		 string
+	Id 			 string `json:"id"`
+	Ip			 string `json:"ip"`
+	Port		 int	`json:"port"`
+	Role		 string	`json:"role"`
+	Status		 string `json:"status"`
 }
