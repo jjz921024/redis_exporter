@@ -46,4 +46,5 @@ type ClusterTopo struct {
 	Port		 int	`json:"port"`
 	Role		 string	`json:"role"`
 	Status		 string `json:"status"`
+	SlaveOf      string `json:"slaveOf"`
 }

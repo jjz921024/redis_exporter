@@ -203,8 +203,11 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 // 上报集群拓扑信息到admin
 func reportClusterTopology() {
 	// partition <--> nodes
-	topo := make(map[string]interface{}, len(ClusterTopology))
+	topo := make(map[string]interface{}, 2)
+	partitions := make(map[string][]ClusterTopo, len(ClusterTopology))
+
 	topo["clusterName"] = *CurrentClusterName
+	topo["partitions"] = partitions
 
 	for name, nodes := range ClusterTopology {
 		arr := strings.Split(nodes, "\n")
@@ -233,8 +236,10 @@ func reportClusterTopology() {
 			}
 
 			role := element[2]
+			slaveOf := ""
 			if !strings.Contains(role, "master") {
-				role = element[3]
+				role = "slave"
+				slaveOf = element[3]
 			} else {
 				role = "master"
 			}
@@ -250,9 +255,10 @@ func reportClusterTopology() {
 				Port: port,
 				Role:   role,
 				Status: status,
+				SlaveOf: slaveOf,
 			})
 		}
-		topo[name] = n
+		partitions[name] = n
 	}
 
 	body, err := json.Marshal(topo)
@@ -263,6 +269,7 @@ func reportClusterTopology() {
 
 	//log.Printf("%s", string(b))
 	req, err := http.NewRequest("POST", *adminUrl+*reportTopoPath, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	if err != nil {
 		log.Printf("json encode err:%s", err.Error())
 		return
@@ -280,7 +287,7 @@ func reportClusterTopology() {
 		log.Printf("report topo err:%s\n", err.Error())
 		return
 	} else if resp.StatusCode != 200 {
-		log.Printf("report topo reponse fail, code:%d\n", resp.StatusCode)
+		log.Printf("report topo reponse fail, code:%d, conetnt:%s\n", resp.StatusCode, string(respBody))
 		return
 	}
 
@@ -290,7 +297,7 @@ func reportClusterTopology() {
 		log.Printf("report topo response invalid err:%s, resp:%s\n", err.Error(), string(respBody))
 		return
 	} else if result.Code != "0" {
-		log.Printf("report topo response code:%s\n", result.Code)
+		log.Printf("report topo response code:%s, content%s\n", result.Code, string(respBody))
 		return
 	}
 

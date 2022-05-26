@@ -1,3 +1,5 @@
+VER=v1.3.1
+
 .PHONE: build
 build:
 	rm -rf apps | true && \
@@ -6,12 +8,12 @@ build:
 
 .PHONE: clean
 clean:
-	rm redis-exporter.tar.gz | true && \
+	rm redis-exporter-$(VER).tar.gz | true && \
 	rm -rf apps | true
 
 .PHONE: dist
 dist: build
-	tar -zcvf redis-exporter.tar.gz apps/* bin/* conf/*
+	tar -zcvf redis-exporter-$(VER).tar.gz apps/* bin/* conf/*
 # tar -zcf target/redis-exporter.tar.gz redis-exporter.tar --remove-files
 # tar -rvf redis-exporter.tar conf/ # 追加
 # tar -cvf redis-exporter.tar --transform 's,^,redis-exporter/,S' apps # 替换目录
@@ -20,5 +22,5 @@ dist: build
 
 .PHONE: dist-zip
 dist-zip: build
-	zip redis-exporter.zip -u apps/* bin/*
-	# zip -j redis-exporter.zip apps/* bin/*
+	zip redis-exporter-$(VER).zip -u apps/* bin/*
+# zip -j redis-exporter.zip apps/* bin/*
