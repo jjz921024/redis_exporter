@@ -27,6 +27,8 @@ var (
 
 	AdmCh = make(chan interface{})
 	ClusterTopology map[string]string = make(map[string]string)
+
+	client *http.Client
 )
 
 func getEnv(key string, defaultVal string) string {
@@ -47,6 +49,14 @@ func getEnvBool(key string, defaultVal bool) bool {
 }
 
 func init() {
+	tr := &http.Transport{
+		MaxIdleConns: 10,
+	}
+	client = &http.Client{
+		Transport: tr,
+		Timeout:   3 * time.Second,
+	}
+
 	go func() {
 		ticker := time.NewTicker(3 * time.Minute)
 		defer ticker.Stop()
@@ -116,7 +126,7 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 	q.Set("componentRole", "exporter")
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("get assemble info err:%s\n", err.Error())
 		return nil, err
@@ -258,7 +268,7 @@ func reportClusterTopology() {
 		return
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("report cluster topo err:%s\n", err.Error())
 		return
