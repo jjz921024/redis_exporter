@@ -26,7 +26,7 @@ var (
 	mu          sync.RWMutex
 
 	AdmCh = make(chan interface{})
-	ClusterTopology map[string]string = make(map[string]string)
+	ClusterTopology = sync.Map{}
 
 	client *http.Client
 )
@@ -107,10 +107,8 @@ func updateCurrentClusterInfo(clusterName string) error {
 		return errors.New("update cluster infor err:" + err.Error())
 	}
 	mu.Lock()
-	defer func() {
-		*CurrentClusterName = clusterName
-		mu.Unlock()
-	}()
+	defer mu.Unlock()
+	*CurrentClusterName = clusterName
 	clusterInfo = info
 	return nil
 }
@@ -204,12 +202,21 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 func reportClusterTopology() {
 	// partition <--> nodes
 	topo := make(map[string]interface{}, 2)
-	partitions := make(map[string][]ClusterTopo, len(ClusterTopology))
+	partitions := make(map[string][]ClusterTopo)
 
 	topo["clusterName"] = *CurrentClusterName
 	topo["partitions"] = partitions
 
-	for name, nodes := range ClusterTopology {
+	ClusterTopology.Range(func(key, value interface{}) bool {
+		name, ok := key.(string)
+		if !ok {
+			return true
+		}
+		nodes, ok := value.(string)
+		if !ok {
+			return true
+		}
+
 		arr := strings.Split(nodes, "\n")
 		n := []ClusterTopo{}
 
@@ -259,7 +266,8 @@ func reportClusterTopology() {
 			})
 		}
 		partitions[name] = n
-	}
+		return true
+	})
 
 	body, err := json.Marshal(topo)
 	if err != nil {

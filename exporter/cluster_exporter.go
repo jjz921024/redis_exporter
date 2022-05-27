@@ -21,7 +21,10 @@ func NewClusterExporter(e *Exporter, opts Options) *ClusterExporter {
 }
 
 func (e *ClusterExporter) Describe(ch chan<- *prometheus.Desc) {
-
+	webank.ClusterTopology.Range(func(key, value interface{}) bool {
+		webank.ClusterTopology.Delete(key)
+		return true
+	})
 }
 
 func (e *ClusterExporter) Collect(ch chan<- prometheus.Metric) {
@@ -42,7 +45,7 @@ func (e *ClusterExporter) scrapeRedisCluster(ch chan<- prometheus.Metric) error 
 	defer c.Close()
 
 	if nodes, err := redis.String(doRedisCmd(c, "CLUSTER", "NODES")); err == nil {
-		webank.ClusterTopology[e.options.PartitionName] = nodes
+		webank.ClusterTopology.Store(e.options.PartitionName, nodes)
 		e.extractClusterNodesMetrics(ch, nodes)
 	}
 
