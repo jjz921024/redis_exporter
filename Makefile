@@ -4,6 +4,7 @@ VER=v1.3.1
 build:
 	rm -rf apps | true && \
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-s -w' -o apps/redis-exporter && \
+	upx -9 -o apps/redis-exporter-release apps/redis-exporter && \
 	echo "done"
 
 .PHONE: clean
