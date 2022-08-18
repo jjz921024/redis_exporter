@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oliver006/redis_exporter/webank"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/time/rate"
@@ -17,7 +16,7 @@ import (
 
 var (
 	limit = rate.Every(time.Second * 10)
- 	limiter = rate.NewLimiter(limit, 3)
+ 	limiter = rate.NewLimiter(limit, *scrapeLimit)
 )
 
 func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +32,6 @@ func (e *Exporter) indexHandler(w http.ResponseWriter, r *http.Request) {
 <head><title>WeRedis Exporter</title></head>
 <body>
 <h1>WeRedis Exporter</h1>
-<p>CurrentClusterName: ` + 	*webank.CurrentClusterName + `</p>
 </body>
 </html>
 `))
@@ -118,12 +116,11 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 	name := params.Get("clusterName")
 
 	if !params.Has("clusterName") || name == "" {
-		*webank.CurrentClusterName = ""
 		w.Write([]byte("# cluster name is nil"))
 		return
 	}
 
-	info, err := webank.GetCurrentClusterInfo(name)
+	info, err := getClusterInfo(name)
 	if err != nil {
 		w.Write([]byte("# " + err.Error()))
 		return
@@ -151,7 +148,7 @@ func (e *Exporter) assembleHandler(w http.ResponseWriter, r *http.Request) {
 		// 每次请求时所选的分区都不同
 		if !Contains(scrapedPartition, n.PartitionNum) {
 			scrapedPartition = append(scrapedPartition, n.PartitionNum)
-			NewClusterExporter(e, opts)
+			NewClusterExporter(e, name, opts)
 		}
 
 		if err != nil {

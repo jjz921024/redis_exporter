@@ -1,14 +1,14 @@
-package webank
+package exporter
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,37 +16,23 @@ import (
 )
 
 var (
-	adminUrl           = flag.String("admin-url", getEnv("ADMIN_URL", "http://10.107.120.69:19999"), "WE-REDIS ADMIN URL OF WEBANK")
-	assembleInfoPath   = flag.String("assmeble-info-path", getEnv("ASSMEBLE_INFO_PATH", "/weredis/clusterinfo/v1/getAssembleInfo"), "assemble info path")
-	reportTopoPath     = flag.String("report-topo-path", getEnv("REPORT_TOPO_PATH", "/weredis/cluster/node/status/v1/"), "report cluster topology path")
-	enableReport	   = flag.Bool("enable-report-admin", getEnvBool("EANBLE_REPORT_ADMIN", true), "enable report admin")
-	CurrentClusterName = flag.String("cluster-name", getEnv("CLUSTER_NAME", ""), "exporter cluster name")
+	adminUrl           = flag.String("admin-url", "http://10.107.120.69:19999", "WE-REDIS ADMIN URL OF WEBANK")
+	assembleInfoPath   = flag.String("assmeble-info-path", "/weredis/clusterinfo/v1/getAssembleInfo", "assemble info path")
+	enableReport	   = flag.Bool("enable-report-admin", true, "enable report cluster topo to admin")
+	reportTopoPath     = flag.String("report-topo-path", "/weredis/cluster/node/status/v1/", "report cluster topology path")
+	enableStatistic    = flag.Bool("enbale-statistic", true, "enable statistic subsyster used capacity")
+	execHour           = *flag.Int("exec-hour", 1, "exec statistic hour in day")
+	sampleRate         = *flag.Float64("smapleRate", 0.1, "subsystem capacity sample rate [0, 1]")    
+	scrapeLimit        = flag.Int("tps", 10, "scrape tps limit")
+	expireSecond       = flag.Int("expire-second", 1 * 60 * 60, "cluster info expire time")
 
-	clusterInfo *ClusterInfo
-	mu          sync.RWMutex
+	// 维护所有集群名和实例的关系
+	allClustersInfo = sync.Map{}
 
-	AdmCh = make(chan interface{})
-	ClusterTopology = sync.Map{}
-
+	// 上报admin的触发channel
+	admCh = make(chan *ClusterExporter)
 	client *http.Client
 )
-
-func getEnv(key string, defaultVal string) string {
-	if envVal, ok := os.LookupEnv(key); ok {
-		return envVal
-	}
-	return defaultVal
-}
-
-func getEnvBool(key string, defaultVal bool) bool {
-	if envVal, ok := os.LookupEnv(key); ok {
-		envBool, err := strconv.ParseBool(envVal)
-		if err == nil {
-			return envBool
-		}
-	}
-	return defaultVal
-}
 
 func init() {
 	tr := &http.Transport{
@@ -57,61 +43,61 @@ func init() {
 		Timeout:   3 * time.Second,
 	}
 
-	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			// 定时刷新当前维护的集群信息
-			if *CurrentClusterName == "" {
-				log.Println("ticker refresh stop, beacuse current cluster name is nil")
-				continue
-			}
-			updateCurrentClusterInfo(*CurrentClusterName)
-		}
-	}()
-
 	if *enableReport {
 		log.Println("enable report cluster topology info to admin")
 		go func() {
-			for range AdmCh {
-				reportClusterTopology()
+			for e := range admCh {
+				reportClusterTopology(e.clusterName, e.clusterTopology)			
 			}
 		}()		
 	}
 
-}
-
-// 获取当前exporter监测的集群信息
-// 若传入集群名和当前监测的集群不同，则会自动切换
-func GetCurrentClusterInfo(clusterName string) (*ClusterInfo, error) {
-	if clusterName != *CurrentClusterName {
-		log.Printf("detect cluster has changed, from:%s to %s\n", *CurrentClusterName, clusterName)
-		if err := updateCurrentClusterInfo(clusterName); err != nil {
-			return nil, err
+	if *enableStatistic {
+		t := time.Now()
+		if (t.Hour() > execHour) {
+			t.Add(24 * time.Hour)	
 		}
+		delay := time.Until(t)
+		log.Printf("enable static subsystem used capacity, delay:%v\n", delay)
+
+		time.AfterFunc(delay, func() {
+			// 设置每天定时执行一次
+			go func() {
+				ticker := time.NewTicker(24 * time.Hour)
+				defer ticker.Stop()
+				for range ticker.C {
+					statSystemCapacity(sampleRate)
+				}
+			} ()
+
+			// 首次执行
+			statSystemCapacity(sampleRate)
+		})
 	}
-	if clusterInfo == nil {
-		log.Println("cluster info is nil")
-		return nil, errors.New("cluster info is nil")
-	}
-	mu.RLock()
-	defer mu.RUnlock()
-	return clusterInfo, nil
 }
 
-func updateCurrentClusterInfo(clusterName string) error {
-	info, err := getAssembleInfo(clusterName)
-	if err != nil {
-		log.Printf("update cluster info err: %s\n", err)
-		return errors.New("update cluster infor err:" + err.Error())
+// 根据集群名获取分区信息, 并缓存一段时间
+func getClusterInfo(clusterName string) (*ClusterInfo, error) {
+	clusterInfo, exist := allClustersInfo.Load(clusterName)
+	if !exist {
+		value, err := getAssembleInfo(clusterName)
+		if err != nil {
+			return nil, fmt.Errorf("get cluster info from admin err:%s", err.Error())
+		}
+		clusterInfo = value
+		allClustersInfo.Store(clusterName, clusterInfo)
+		// 缓存过期时间
+		time.AfterFunc(time.Duration(*expireSecond) * time.Second, func() {
+			allClustersInfo.Delete(clusterName)
+		})
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	*CurrentClusterName = clusterName
-	clusterInfo = info
-	return nil
-}
+
+	ci, ok := clusterInfo.(*ClusterInfo)
+	if !ok {
+		return nil, errors.New("get cluster info type assert err")
+	}
+	return ci, nil
+} 
 
 func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 	req, err := http.NewRequest("GET", *adminUrl+*assembleInfoPath, nil)
@@ -146,6 +132,8 @@ func getAssembleInfo(clusterName string) (*ClusterInfo, error) {
 		return nil, errors.New("fail: " + result.Msg)
 	}
 
+	// 反序列成功后，设置集群名字段
+	result.ResultData.Name = clusterName
 	return &result.ResultData, nil
 }
 
@@ -169,7 +157,6 @@ type reportResponse struct {
 // RPD|RPD_GENERAL_REDIS_NODESET_1_CACHE|1|169.254.149.66:30001,169.254.149.66:30002,169.254.149.66:30003
 func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 	content := strings.Trim(string(data), "\"")
-	c.Name = *CurrentClusterName
 	// 处理每个分区的数据
 	for _, s := range strings.Split(content, ";") {
 		// 取num和host, 包含全部主从节点
@@ -199,15 +186,15 @@ func (c *ClusterInfo) UnmarshalJSON(data []byte) error {
 }
 
 // 上报集群拓扑信息到admin
-func reportClusterTopology() {
+func reportClusterTopology(clusterName string, clusterTopology sync.Map) {
 	// partition <--> nodes
 	topo := make(map[string]interface{}, 2)
-	partitions := make(map[string][]ClusterTopo)
+	partitions := make(map[string][]NodeTopo)
 
-	topo["clusterName"] = *CurrentClusterName
+	topo["clusterName"] = clusterName
 	topo["partitions"] = partitions
 
-	ClusterTopology.Range(func(key, value interface{}) bool {
+	clusterTopology.Range(func(key, value interface{}) bool {
 		name, ok := key.(string)
 		if !ok {
 			return true
@@ -218,7 +205,7 @@ func reportClusterTopology() {
 		}
 
 		arr := strings.Split(nodes, "\n")
-		n := []ClusterTopo{}
+		n := []NodeTopo{}
 
 		for _, line := range arr {
 			element := strings.Split(line, " ")
@@ -256,7 +243,7 @@ func reportClusterTopology() {
 				status = "fail"
 			}
 
-			n = append(n, ClusterTopo{
+			n = append(n, NodeTopo{
 				Id: id,
 				Ip: ip,
 				Port: port,
@@ -308,5 +295,4 @@ func reportClusterTopology() {
 		log.Printf("report topo response code:%s, content%s\n", result.Code, string(respBody))
 		return
 	}
-
 }
