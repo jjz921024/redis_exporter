@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -12,10 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	scanCount = 100
-	lockKeyPrefix = "__exporter_subsystem_capacity_stat:" 
-)
+const lockKeyPrefix = "__exporter_subsystem_capacity_stat:"
 
 // 保存一个集群内所有子系统统计指标
 // key: systemId
@@ -35,10 +33,10 @@ type SysUsage struct {
 // 遍历内存中维护的所有集群, 统计每个集群内各子系统的使用容量:
 // 1. 对集群的最小分区加锁, 若加锁成功则表示该exporter对这个集群执行采样任务
 // 2. 创建集群内所有master节点对应的其中一个slave节点的连接
-// 3. 对每个节点dbsize累加，得到key总数, 再计算需采样的key总数 
+// 3. 对每个节点dbsize累加，得到key总数, 再计算需采样的key总数
 // 4. 使用randkey命令, 在所有slave节点中随机循环采样key
 // 5. 汇总最后结果, 上报admin
-func sampleStatClusterUsage(rate float64, host string) {
+func sampleStatClusterUsage() {
 	options := []redis.DialOption{
 		redis.DialConnectTimeout(2 * time.Second),
 		redis.DialReadTimeout(2 * time.Second),
@@ -47,8 +45,8 @@ func sampleStatClusterUsage(rate float64, host string) {
 	}
 
 	// 只对exporter内已知的集群尝试进行采样扫描
-	allClustersInfo.Range(func(key, value interface{}) bool {
-		clusterInfo := value.(*ClusterInfo)
+	allClustersInfo.Range(func(_, info interface{}) bool {
+		clusterInfo := info.(*ClusterInfo)
 		if len(clusterInfo.Partitions) == 0 {
 			log.Errorf("can not found partition for cluster:%s\n", clusterInfo.Name)
 			return true
@@ -64,11 +62,11 @@ func sampleStatClusterUsage(rate float64, host string) {
 		defer clusterConn.Close()
 
 		// lockKey上拼接日期, 每个集群每天只需执行一次统计, 锁自动过期 1 day (86400)
-		/* lockKey := lockKeyPrefix + time.Now().Format("2006-01-02")  
+		lockKey := lockKeyPrefix + time.Now().Format("2006-01-02")
 		if _, err := redis.String(clusterConn.Do("set", lockKey, "weredis-exporter-" + host, "nx", "ex", "86400")); err != nil {
 			log.Errorf("lock cluster:%s fail, err:%s", clusterInfo.Name, err)
 			return true
-		}  */
+		}
 
 		log.Infof("lock success, start scan cluster:%s\n", clusterInfo.Name)
 
@@ -77,21 +75,27 @@ func sampleStatClusterUsage(rate float64, host string) {
 			log.Errorf("get cluster:%s conn fail, err:%s\n", clusterInfo.Name, err)
 			return true
 		}
+		defer func() {
+			log.Infof("close cluster:%s connection\n", clusterInfo.Name)
+			for _, c := range conns {
+				c.conn.Close()
+			}
+		}()
 
 		connsNum := len(conns)
-		log.Infof("connect slave num:%d\n", connsNum)
+		log.Infof("connect cluster:%s slave num:%d\n", clusterInfo.Name, connsNum)
 
 		// 集群内所有key的总数
 		var totalKeyNum int
 		for _, c := range conns {
 			size, err := redis.Int(c.conn.Do("dbsize"))
 			if err != nil {
-				log.Errorf("exec dbsize fail,c:%v err:%s\n", c, err)		
+				log.Errorf("exec dbsize fail,c:%v err:%s\n", c, err)
 			} else {
 				totalKeyNum += size
 			}
 		}
-		sampleKeyNum := int(float64(totalKeyNum) * rate)
+		sampleKeyNum := int(float64(totalKeyNum) * sampleRate)
 		log.Infof("cluster:%s total key num:%d, sample num:%d\n", clusterInfo.Name, totalKeyNum, sampleKeyNum)
 
 		StatResult = make(map[string]*SysUsage)
@@ -108,21 +112,22 @@ func sampleStatClusterUsage(rate float64, host string) {
 				c.cursor = rand.Intn(10000)
 				continue
 			}
-			
+
 			if len(res) != 2 {
 				log.Errorf("scan result format is illegal, %+v\n", res)
-				continue			
+				continue
 			}
 
 			nextCur, err := strconv.Atoi(string(res[0].([]uint8)))
 			if err != nil {
 				log.Errorf("parse next curosr err: %s\n", err)
-				continue			
+				continue
 			}
 
-			// 记录下一次该连接的scan游标
-			c.cursor = nextCur
-		
+			// 记录下一次该连接的scan游标, 更具有随机性
+			c.cursor = nextCur + rand.Intn(10)
+
+			// 遍历scan到的所有key
 			for _, key := range res[1].([]interface{}) {
 				k := string(key.([]uint8))
 				var systemId string
@@ -131,7 +136,7 @@ func sampleStatClusterUsage(rate float64, host string) {
 				} else {
 					systemId = "unknown"
 				}
-				
+
 				sysUsage := StatResult[systemId]
 				if sysUsage == nil {
 					sysUsage = &SysUsage{}
@@ -143,7 +148,7 @@ func sampleStatClusterUsage(rate float64, host string) {
 					log.Errorf("exec [memory usage] on key:[%s], err:%s\n", k, err)
 					continue
 				}
-				
+
 				// 判断是否设置ttl
 				ttl, err := redis.Int(c.conn.Do("ttl", k))
 				if err != nil {
@@ -152,7 +157,7 @@ func sampleStatClusterUsage(rate float64, host string) {
 				}
 
 				// 判断是否属于bigKey
-				isBigKey, err := isBigKey(k, c.conn)
+				isBigKey, err := isBigKey(k, usage, c.conn)
 				if err != nil {
 					log.Errorf("exec [Big Key] on key:[%s], err:%s\n", k, err)
 					continue
@@ -161,8 +166,8 @@ func sampleStatClusterUsage(rate float64, host string) {
 				// 记录结果
 				// TODO: 限制个数
 				sysUsage.capacity += usage
-				if ttl == -1 {
-					sysUsage.ttlKeyNum += 1					
+				if ttl == -1 || ttl > *ttlThreshold {
+					sysUsage.ttlKeyNum += 1
 					sysUsage.ttlKeySample = append(sysUsage.ttlKeySample, k)
 				}
 				if isBigKey {
@@ -174,12 +179,6 @@ func sampleStatClusterUsage(rate float64, host string) {
 				i += 1
 			}
 		}
-
-		// clear
-		for _, c := range conns {
-			c.conn.Close()
-		}
-		
 		return true
 	})
 }
@@ -295,9 +294,9 @@ func createSlaveConnections(clusterInfo *ClusterInfo, options []redis.DialOption
 			masterAddr := masterHost + ":" + masterPort
 			if isSlave && !Contains(connectedNode, masterAddr) {
 				conns = append(conns, slaveConn{
-					conn: c,
-					cursor: rand.Intn(10000),
-					addr: addr,
+					conn:       c,
+					cursor:     rand.Intn(10000),
+					addr:       addr,
 					masterAddr: masterAddr,
 				})
 				connectedNode = append(connectedNode, masterAddr)
@@ -311,7 +310,32 @@ func createSlaveConnections(clusterInfo *ClusterInfo, options []redis.DialOption
 }
 
 // 判断是否属于BigKey
-func isBigKey(key string, c redis.Conn) (bool, error) {
+func isBigKey(key string, usage int, c redis.Conn) (bool, error) {
+	if usage > *memoryThreshold {
+		return true, nil
+	}
 
-	return false, nil
+	s, err := redis.String(c.Do("type", key))
+	if err != nil {
+		log.Errorf("exec [type] on key:%s, err%s\n", key, err)
+		return false, err
+	}
+
+	var itemNum int
+	switch s {
+		case "string", "exstrtype": itemNum, err = 0, nil
+		case "list": itemNum, err = redis.Int(c.Do("llen", key))
+		case "set": itemNum, err = redis.Int(c.Do("scard", key))
+		case "hash": itemNum, err = redis.Int(c.Do("hlen", key))
+		case "zset": itemNum, err = redis.Int(c.Do("zcard", key)) 
+		case "tairhash-": itemNum, err = redis.Int(c.Do("exhlen", key, "noExp"))
+		default: itemNum, err = 0, errors.New("unknown type:" + s)
+	}
+
+	if err != nil {
+		log.Errorf("fetch item num on key:%s err:%s\n", key, err)
+		return false, err;
+	}
+
+	return itemNum > *itemsThreshold, nil
 }

@@ -25,6 +25,10 @@ var (
 	enableStatistic    = flag.Bool("enbale-statistic", true, "enable statistic subsyster used capacity")
 	execHour           = *flag.Int("exec-hour", 1, "exec statistic hour in day")
 	sampleRate         = *flag.Float64("smapleRate", 0.1, "subsystem capacity sample rate [0, 1]")    
+	scanCount 		   = flag.Int("scan-count", 1000, "count of per scan")
+	itemsThreshold     = flag.Int("itemThreshold", 1000, "the items threshold of Big nested data types")
+	memoryThreshold    = flag.Int("memoryThreshold", 10000, "the memory threshold of Big KeyValue")
+	ttlThreshold       = flag.Int("ttlThreshold", 1000000, "the ttl threshold of key")
 
 	scrapeLimit        = flag.Int("tps", 10, "scrape tps limit")
 	expireSecond       = flag.Int("expire-second", 1 * 60 * 60, "cluster info expire time")
@@ -77,12 +81,12 @@ func init() {
 				ticker := time.NewTicker(delay) //24 * time.Hour
 				defer ticker.Stop()
 				for range ticker.C {
-					sampleStatClusterUsage(sampleRate, host)
+					sampleStatClusterUsage()
 				}
 			} ()
 
 			// 首次执行
-			sampleStatClusterUsage(sampleRate, host)
+			sampleStatClusterUsage()
 		})
 	}
 }
