@@ -18,13 +18,18 @@ import (
 var (
 	adminUrl           = flag.String("admin-url", "http://10.107.120.69:19999", "WE-REDIS ADMIN URL OF WEBANK")
 	assembleInfoPath   = flag.String("assmeble-info-path", "/weredis/clusterinfo/v1/getAssembleInfo", "assemble info path")
+
 	enableReport	   = flag.Bool("enable-report-admin", true, "enable report cluster topo to admin")
 	reportTopoPath     = flag.String("report-topo-path", "/weredis/cluster/node/status/v1/", "report cluster topology path")
+
 	enableStatistic    = flag.Bool("enbale-statistic", true, "enable statistic subsyster used capacity")
 	execHour           = *flag.Int("exec-hour", 1, "exec statistic hour in day")
 	sampleRate         = *flag.Float64("smapleRate", 0.1, "subsystem capacity sample rate [0, 1]")    
+
 	scrapeLimit        = flag.Int("tps", 10, "scrape tps limit")
 	expireSecond       = flag.Int("expire-second", 1 * 60 * 60, "cluster info expire time")
+
+	host 			   = *flag.String("exporter-host", "127.0.0.1", "exporter host")
 
 	// 维护所有集群名和实例的关系
 	allClustersInfo = sync.Map{}
@@ -34,6 +39,9 @@ var (
 	client *http.Client
 )
 
+// 创建与admin相关的定时任务
+// 1. 上报集群拓扑信息
+// 2. 开启子系统key扫描任务
 func init() {
 	tr := &http.Transport{
 		MaxIdleConns: 10,
@@ -53,25 +61,28 @@ func init() {
 	}
 
 	if *enableStatistic {
-		t := time.Now()
+		// TODO: 
+		/* t := time.Now()
 		if (t.Hour() > execHour) {
 			t.Add(24 * time.Hour)	
 		}
-		delay := time.Until(t)
-		log.Printf("enable static subsystem used capacity, delay:%v\n", delay)
+		delay := time.Until(t) */
+
+		delay := time.Second * 5
+		log.Printf("enable statistics subsystem keys, after:%v\n", delay)
 
 		time.AfterFunc(delay, func() {
 			// 设置每天定时执行一次
 			go func() {
-				ticker := time.NewTicker(24 * time.Hour)
+				ticker := time.NewTicker(delay) //24 * time.Hour
 				defer ticker.Stop()
 				for range ticker.C {
-					statSystemCapacity(sampleRate)
+					sampleStatClusterUsage(sampleRate, host)
 				}
 			} ()
 
 			// 首次执行
-			statSystemCapacity(sampleRate)
+			sampleStatClusterUsage(sampleRate, host)
 		})
 	}
 }

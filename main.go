@@ -125,7 +125,7 @@ func main() {
 	}
 
 	// aomp公钥解密
-	*redisPwd, err = decryptRedisPasswd(*redisPwd)
+	exporter.RedisPassword, err = decryptRedisPasswd(*redisPwd)
 	if err != nil {
 		log.Fatalf("decrypt passwd err: %s", err)
 	}
@@ -154,7 +154,7 @@ func main() {
 		*redisAddr,
 		exporter.Options{
 			User:                  *redisUser,
-			Password:              *redisPwd,
+			Password:              exporter.RedisPassword,
 			PasswordMap:           passwordMap,
 			Namespace:             *namespace,
 			ConfigCommandName:     *configCommand,
